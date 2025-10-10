@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import SaldoCard from '../components/UI/SaldoCards';
+import RegisterTransactionForm from '../components/forms/RegisterTransactionForm';
 import axios from 'axios';
 
 interface Transacao {
@@ -50,6 +51,7 @@ const Dashboard: React.FC = () => {
             <button className='logout-btn' onClick={handleLogout}>
                 Logout
             </button>
+            <RegisterTransactionForm userId={parseInt(userId!)}/>
             <table>
                 <thead>
                     <tr>
