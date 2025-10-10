@@ -100,7 +100,6 @@ const RegisterTransactionForm: React.FC<Props> = ({ userId, onAddTransaction }) 
     return (
         <div className="form-container">
             <div className="form-box">
-                <h2>Registrar Transação</h2>
                 <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
                     <button
                         type="button"

@@ -43,44 +43,49 @@ const RegisterForm: React.FC = () => {
     };
 
     return (
-        <div style={{ maxWidth: 400, margin: '0 auto' }}>
-            <h2>Cadastro de Usuário</h2>
-            <form onSubmit={handleSubmit}>
-                <div>
-                    <label>Nome:</label>
-                    <input
-                        type="text"
-                        value={name}
-                        onChange={e => setName(e.target.value)}
-                        required
-                    />
-                </div>
-                <div>
-                    <label>Email:</label>
-                    <input
-                        type="email"
-                        value={email}
-                        onChange={e => setEmail(e.target.value)}
-                        required
-                    />
-                </div>
-                <div>
-                    <label>Senha:</label>
-                    <input
-                        type="password"
-                        value={password}
-                        onChange={e => setPassword(e.target.value)}
-                        required
-                    />
-                </div>
-                <button type="submit">Cadastrar</button>
-            </form>
+        <div className="register-page">
+            <div className="register-form">
+                <h2>Cadastro de Usuário</h2>
+                <form onSubmit={handleSubmit}>
+                    <div>
+                        <label>Nome:</label>
+                        <input
+                            type="text"
+                            placeholder='Nome'
+                            value={name}
+                            onChange={e => setName(e.target.value)}
+                            required
+                        />
+                    </div>
+                    <div>
+                        <label>Email:</label>
+                        <input
+                            type="email"
+                            placeholder='E-mail'
+                            value={email}
+                            onChange={e => setEmail(e.target.value)}
+                            required
+                        />
+                    </div>
+                    <div>
+                        <label>Senha:</label>
+                        <input
+                            type="password"
+                            placeholder='Senha'
+                            value={password}
+                            onChange={e => setPassword(e.target.value)}
+                            required
+                        />
+                    </div>
+                    <button type="submit">Cadastrar</button>
+                </form>
 
-            {message && (
-                <p style={{ marginTop: 10, color: message.includes('sucesso') ? 'green' : 'red' }}>
-                    {message}
-                </p>
-            )}
+                {message && (
+                    <p className={message.includes('sucesso') ? 'success' : 'error'}>
+                        {message}
+                    </p>
+                )}
+            </div>
         </div>
     );
 };
