@@ -3,7 +3,7 @@ import "../../styles/form.scss";
 
 interface Props {
     userId: number;
-    onAddTransaction: (transaction: any) => void; // callback para atualizar o dashboard
+    onAddTransaction: () => void; // callback para atualizar o dashboard
 }
 
 const RegisterTransactionForm: React.FC<Props> = ({ userId, onAddTransaction }) => {
@@ -53,8 +53,8 @@ const RegisterTransactionForm: React.FC<Props> = ({ userId, onAddTransaction }) 
                 date: data.transaction.date,
                 tipo: operationType === "Lavagem" ? "entrada" : "saida", // define tipo
             };
-            
-            onAddTransaction(newTransaction); // atualiza o Dashboard
+
+            onAddTransaction(); // atualiza o Dashboard
 
         } catch (err: any) {
             setError(err.message);

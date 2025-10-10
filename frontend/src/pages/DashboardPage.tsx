@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import SaldoCard from '../components/UI/SaldoCards';
-import RegisterTransactionForm from '../components/forms/RegisterTransactionForm';
 import axios from 'axios';
 
 interface Transacao {
@@ -12,33 +11,40 @@ interface Transacao {
     tipo: 'entrada' | 'saida';
 }
 
-const Dashboard: React.FC = () => {
+const DashboardPage: React.FC = () => {
     const { userId } = useParams<{ userId: string }>();
     const [transacoes, setTransacoes] = useState<Transacao[]>([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
-    useEffect(() => {
+    const fetchTransacoes = async () => {
         if (!userId) return;
 
-        const fetchTransacoes = async () => {
-            try {
-                const response = await axios.get(`http://localhost:3333/dashboard/${userId}`);
+        setLoading(true);
+        try {
+            const response = await axios.get(`http://localhost:3333/dashboard/${userId}`);
 
-                // Converte 'valor' para número
-                const data = response.data.map((t: any) => ({
-                    ...t,
-                    valor: Number(t.valor), // <- aqui
-                }));
+            const data: Transacao[] = response.data.map((t: any) => ({
+                id: t.id,
+                descricao: t.description || `${t.operation_type || ""} - ${t.service_type || ""}`,
+                valor: Number(t.value || t.valor) || 0,
+                date: t.date || t.createdAt || "-",
+                tipo: t.tipo
+                    ? t.tipo
+                    : t.operation_type === "Lavagem" || t.operation_type === "Self-service"
+                        ? "entrada"
+                        : "saida",
+            }));
 
-                setTransacoes(data);
-            } catch (error) {
-                console.error('Erro ao buscar transações:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
+            setTransacoes(data);
+        } catch (error) {
+            console.error('Erro ao buscar transações:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
+    useEffect(() => {
         fetchTransacoes();
     }, [userId]);
 
@@ -47,7 +53,7 @@ const Dashboard: React.FC = () => {
         navigate('/');
     };
 
-    // --- Cálculos financeiros ---
+    // --- cálculos financeiros ---
     const totalReceita = transacoes
         .filter(t => t.tipo === 'entrada')
         .reduce((acc, t) => acc + t.valor, 0);
@@ -58,24 +64,21 @@ const Dashboard: React.FC = () => {
 
     const saldoTotal = totalReceita - totalDespesas;
 
-    const handleAddTransaction = (transaction: Transacao) => {
-        setTransacoes(prev => [...prev, transaction]);
-    };
-
     if (loading) return <p>Carregando...</p>;
 
     return (
         <div className="dashboard-container">
             <h1>Dashboard do Usuário {userId}</h1>
             <button className='logout-btn' onClick={handleLogout}>Logout</button>
+            <button onClick={() => navigate(`/transactions/${userId}`)}>
+                Registrar Nova Transação
+            </button>
 
             <div className='dashboard-saldos'>
                 <SaldoCard title="Saldo Total" amount={saldoTotal} color="green" />
                 <SaldoCard title="Receita" amount={totalReceita} color="blue" />
                 <SaldoCard title="Despesas" amount={totalDespesas} color="red" />
             </div>
-
-            <RegisterTransactionForm userId={parseInt(userId!)} onAddTransaction={handleAddTransaction} />
 
             <table>
                 <thead>
@@ -89,9 +92,10 @@ const Dashboard: React.FC = () => {
                 <tbody>
                     {transacoes.map(t => (
                         <tr key={t.id}>
-                            <td>{t.descricao || "-"}</td>
-                            <td>{t.valor !== undefined && t.valor !== null ? t.valor.toFixed(2) : "0.00"}</td>                            <td>{t.date ? new Date(t.date).toLocaleDateString() : "-"}</td>
-                            <td>{t.tipo || "-"}</td>
+                            <td>{t.descricao}</td>
+                            <td>{!isNaN(t.valor) ? t.valor.toFixed(2) : "0.00"}</td>
+                            <td>{t.date !== "-" ? new Date(t.date).toLocaleDateString() : "-"}</td>
+                            <td>{t.tipo}</td>
                         </tr>
                     ))}
                 </tbody>
@@ -100,4 +104,4 @@ const Dashboard: React.FC = () => {
     );
 };
 
-export default Dashboard;
+export default DashboardPage;
