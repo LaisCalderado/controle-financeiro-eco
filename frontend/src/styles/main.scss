@@ -1,19 +1,16 @@
-// src/styles/main.scss
-@import './base/variables';
-@import './base/mixins';
-@import './base/reset';
+/* main.scss */
 
-@import './components/button';
-@import './components/card';
-@import './components/alert';
+/* 1. Base (variáveis primeiro) */
+@import 'base/variables'; // <- define $secondary-color e outras
+@import 'base/mixins';
+@import 'base/reset'; // <- agora pode usar $secondary-color
 
-@import './pages/login';
-@import './pages/dashboard';
+/* 2. Components */
+@import 'components/button';
+@import 'components/card';
+@import 'components/forms';
 
-body {
-  font-family: $font-family;
-  background-color: $bg-color;
-  margin: 0;
-  padding: 0;
-  color: $text-color;
-}
+/* 3. Pages */
+@import 'pages/dashboard';
+@import 'pages/login';
+@import 'pages/register';

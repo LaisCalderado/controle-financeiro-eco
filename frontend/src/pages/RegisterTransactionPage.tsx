@@ -9,15 +9,15 @@ const RegisterTransactionPage: React.FC = () => {
     if (!userId) return <p>Usuário não encontrado</p>;
 
     return (
-        <div>
-            <h1>Registrar Nova Transação</h1>
-            <button onClick={() => navigate(-1)}>Voltar</button>
+        <div className="form-container">
+            <h2>Registrar Nova Transação</h2>
+            <button onClick={() => navigate(-1)} style={{ marginBottom: "1rem", backgroundColor: "#2563eb", color: "white" }}>Voltar</button>
             <RegisterTransactionForm
                 userId={parseInt(userId)}
                 onAddTransaction={() => navigate(`/dashboard/${userId}`)}
-            // Redireciona para dashboard após criar transação
             />
         </div>
+
     );
 };
 

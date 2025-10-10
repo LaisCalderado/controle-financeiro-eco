@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import SaldoCard from '../components/UI/SaldoCards';
 import axios from 'axios';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
+import { Bar } from 'react-chartjs-2';
+import SaldoCard from '../components/UI/SaldoCards';
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 interface Transacao {
     id: number;
@@ -44,16 +48,8 @@ const DashboardPage: React.FC = () => {
         }
     };
 
-    useEffect(() => {
-        fetchTransacoes();
-    }, [userId]);
+    useEffect(() => { fetchTransacoes(); }, [userId]);
 
-    const handleLogout = () => {
-        localStorage.removeItem('token');
-        navigate('/');
-    };
-
-    // --- cálculos financeiros ---
     const totalReceita = transacoes
         .filter(t => t.tipo === 'entrada')
         .reduce((acc, t) => acc + t.valor, 0);
@@ -66,18 +62,41 @@ const DashboardPage: React.FC = () => {
 
     if (loading) return <p>Carregando...</p>;
 
+    // --- Dados para o gráfico ---
+    const chartData = {
+        labels: ['Saldo Total', 'Receita', 'Despesas'],
+        datasets: [
+            {
+                label: 'R$',
+                data: [saldoTotal, totalReceita, totalDespesas],
+                backgroundColor: ['#10b981', '#3b82f6', '#ef4444'],
+                borderRadius: 6,
+            },
+        ],
+    };
+
     return (
         <div className="dashboard-container">
-            <h1>Dashboard do Usuário {userId}</h1>
-            <button className='logout-btn' onClick={handleLogout}>Logout</button>
-            <button onClick={() => navigate(`/transactions/${userId}`)}>
-                Registrar Nova Transação
-            </button>
+            <div className="dashboard-header">
+                <h1>Dashboard do Usuário {userId}</h1>
+                <div>
+                    <button className="logout-btn" onClick={() => { localStorage.removeItem('token'); navigate('/'); }}>
+                        Logout
+                    </button>
+                    <button className="add-transaction-btn" onClick={() => navigate(`/transactions/${userId}`)}>
+                        + Nova Transação
+                    </button>
+                </div>
+            </div>
 
             <div className='dashboard-saldos'>
                 <SaldoCard title="Saldo Total" amount={saldoTotal} color="green" />
                 <SaldoCard title="Receita" amount={totalReceita} color="blue" />
                 <SaldoCard title="Despesas" amount={totalDespesas} color="red" />
+            </div>
+
+            <div className="chart-container">
+                <Bar data={chartData} options={{ responsive: true, plugins: { legend: { display: false } } }} />
             </div>
 
             <table>

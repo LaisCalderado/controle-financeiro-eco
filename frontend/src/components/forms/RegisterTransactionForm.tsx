@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import "../../styles/form.scss";
+import "../../styles/components/_forms.scss";
 
 interface Props {
     userId: number;
-    onAddTransaction: () => void; // callback para atualizar o dashboard
+    onAddTransaction: (transaction: any) => void;
 }
 
 const RegisterTransactionForm: React.FC<Props> = ({ userId, onAddTransaction }) => {
@@ -49,12 +49,12 @@ const RegisterTransactionForm: React.FC<Props> = ({ userId, onAddTransaction }) 
             const newTransaction = {
                 id: data.transaction.id,
                 descricao: `${operationType} - ${serviceType}`,
-                valor: Number(data.transaction.value), // garante número
+                valor: Number(data.transaction.value),
                 date: data.transaction.date,
-                tipo: operationType === "Lavagem" ? "entrada" : "saida", // define tipo
+                tipo: operationType === "Lavagem" ? "entrada" : "saida",
             };
 
-            onAddTransaction(); // atualiza o Dashboard
+            onAddTransaction(newTransaction);
 
         } catch (err: any) {
             setError(err.message);
@@ -93,11 +93,13 @@ const RegisterTransactionForm: React.FC<Props> = ({ userId, onAddTransaction }) 
                     </select>
 
                     <button type="submit">Registrar</button>
+
                     {error && <div className="error">{error}</div>}
                     {success && <div className="success">{success}</div>}
                 </form>
             </div>
         </div>
+
     );
 };
 
