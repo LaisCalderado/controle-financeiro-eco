@@ -89,7 +89,7 @@ const DashboardPage: React.FC = () => {
                     <button className="logout-btn" onClick={() => { localStorage.removeItem('token'); navigate('/'); }}>
                         Logout
                     </button>
-                    <button className="add-transaction-btn" onClick={() => navigate(`/transactions/${userId}`)}>
+                    <button className="add-transaction-btn" onClick={() => navigate(`/controle-diario`)}>
                         + Nova Transação
                     </button>
                 </div>
