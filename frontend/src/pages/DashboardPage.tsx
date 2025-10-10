@@ -14,7 +14,8 @@ interface Transacao {
     valor: number;
     date: string;
     tipo: 'entrada' | 'saida';
-    serviceType: string; // <- adiciona aqui
+    serviceType: string;
+    paymentMethod?: string;
 }
 
 const DashboardPage: React.FC = () => {
@@ -23,7 +24,7 @@ const DashboardPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
-    const fetchTransacoes = async () => {
+    const fetchTransacoes = React.useCallback(async () => {
         if (!userId) return;
 
         setLoading(true);
@@ -32,14 +33,17 @@ const DashboardPage: React.FC = () => {
 
             const data: Transacao[] = response.data.map((t: any) => ({
                 id: t.id,
-                descricao: t.description || `${t.operation_type || ""} - ${t.service_type || ""}`,
+                descricao: t.descricao
+                    ? t.descricao
+                    : `${t.operation_type || ""} - ${t.service_type || ""}`,
                 valor: Number(t.value || t.valor) || 0,
                 date: t.date || t.createdAt || "-",
-                tipo: t.tipo
-                    ? t.tipo
+                tipo: t.tipo === 'receita' ? 'entrada'
+                    : t.tipo === 'despesa' ? 'saida'
                     : t.operation_type === "Lavagem" || t.operation_type === "Self-service"
                         ? "entrada"
                         : "saida",
+                paymentMethod: t.payment_method || t.paymentMethod || ""
             }));
 
             setTransacoes(data);
@@ -48,9 +52,9 @@ const DashboardPage: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [userId]);
 
-    useEffect(() => { fetchTransacoes(); }, [userId]);
+    useEffect(() => { fetchTransacoes(); }, [fetchTransacoes]);
 
     const totalReceita = transacoes
         .filter(t => t.tipo === 'entrada')
@@ -111,6 +115,7 @@ const DashboardPage: React.FC = () => {
                         <th>Valor</th>
                         <th>Data</th>
                         <th>Tipo</th>
+                        <th>Método</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -120,6 +125,7 @@ const DashboardPage: React.FC = () => {
                             <td>{!isNaN(t.valor) ? t.valor.toFixed(2) : "0.00"}</td>
                             <td>{t.date !== "-" ? new Date(t.date).toLocaleDateString() : "-"}</td>
                             <td>{t.tipo}</td>
+                            <td>{t.tipo === 'entrada' ? t.paymentMethod : '-'}</td>
                         </tr>
                     ))}
                 </tbody>
