@@ -6,13 +6,13 @@ const router = Router();
 // Registrar nova transação
 router.post('/transactions', async (req, res) => {
     console.log('REQ.BODY:', req.body);
-    const { userId, date, serviceType, operationType, value, paymentMethod, descricao, tipo } = req.body;
+    const { userId, date: data, serviceType, operationType, value, paymentMethod, descricao, tipo } = req.body;
 
     // Campos obrigatórios comuns
     if (
         userId == null ||
         userId === "" ||
-        !date ||
+    !data ||
         value == null ||
         value === "" ||
         !tipo
@@ -35,10 +35,10 @@ router.post('/transactions', async (req, res) => {
     }
 
     try {
-        const query = `INSERT INTO transactions (user_id, date, service_type, operation_type, value, payment_method, descricao, tipo) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *;`;
+        const query = `INSERT INTO transactions (user_id, data, service_type, operation_type, value, payment_method, descricao, tipo) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *;`;
         const values = [
             userId,
-            date,
+            data,
             tipo === "receita" ? serviceType : null,
             tipo === "receita" ? operationType : null,
             value,
