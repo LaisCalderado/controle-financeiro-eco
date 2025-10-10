@@ -1,0 +1,43 @@
+.login-page {
+    @include flex-center;
+    height: 100vh;
+
+    .login-container {
+        @include card;
+        width: 100%;
+        max-width: 400px;
+        text-align: center;
+
+        h2 {
+            margin-bottom: 1.5rem;
+            color: $primary-color;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+
+            input {
+                padding: 0.8rem;
+                border: 1px solid #ddd;
+                border-radius: $border-radius;
+            }
+
+            button {
+                @extend .button;
+            }
+        }
+
+        p {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+
+            a {
+                color: $primary-color;
+                text-decoration: none;
+                font-weight: 500;
+            }
+        }
+    }
+}

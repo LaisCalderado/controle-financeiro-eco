@@ -1,0 +1,56 @@
+@import '../styles/base/variables';
+@import '../styles/base/mixins';
+
+.form-container {
+    @include flex-center;
+    flex-direction: column;
+    height: 100vh;
+
+    .form-box {
+        background-color: $white;
+        padding: 40px;
+        border-radius: $border-radius;
+        box-shadow: $shadow;
+        width: 100%;
+        max-width: 380px;
+
+        h2 {
+            text-align: center;
+            margin-bottom: 24px;
+            color: $primary-color;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+
+            input {
+                padding: 10px;
+                border: 1px solid $gray;
+                border-radius: 5px;
+                background-color: $white;
+                color: $black;
+            }
+
+            button {
+                background-color: $primary-color;
+                color: $white;
+                border: none;
+                border-radius: $border-radius;
+                padding: 10px;
+                cursor: pointer;
+
+                &:hover {
+                    background-color: $primary-hover;
+                }
+
+                .error {
+                    color: $error-color;
+                    font-size: 13px;
+                    text-align: center;
+                }
+            }
+        }
+    }
+}
