@@ -1,16 +1,27 @@
-// src/App.tsx
-import React from 'react';
-import RegisterForm from './components/forms/RegisterForm';
-import UserList from './components/UserList';
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
+import DashboardPage from "./pages/DashboardPage"
+import NotFoundPage from "./pages/NotFoundPage";
 
-const App: React.FC = () => {
+import "./styles/main.scss";
+import PrivateRoute from "./components/routes/PrivateRoute";
+
+function App() {
   return (
-    <div style={{ padding: 20, fontFamily: 'Arial, sans-serif' }}>
-      <h1>Controle Financeiro</h1>
-      <RegisterForm />
-      <UserList />
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/dashboard/:userId"
+          element={
+            <PrivateRoute>
+              <DashboardPage />
+            </PrivateRoute>} />
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+    </BrowserRouter>
   );
-};
+}
 
 export default App;
