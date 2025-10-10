@@ -3,9 +3,10 @@ import "../../styles/form.scss";
 
 interface Props {
     userId: number;
+    onAddTransaction: (transaction: any) => void; // callback para atualizar o dashboard
 }
 
-const RegisterTransactionForm: React.FC<Props> = ({ userId }) => {
+const RegisterTransactionForm: React.FC<Props> = ({ userId, onAddTransaction }) => {
     const [date, setDate] = useState("");
     const [serviceType, setServiceType] = useState("Self-service");
     const [operationType, setOperationType] = useState("Lavagem");
@@ -44,6 +45,17 @@ const RegisterTransactionForm: React.FC<Props> = ({ userId }) => {
             setSuccess("Transação registrada com sucesso!");
             setDate("");
             setValue("");
+
+            const newTransaction = {
+                id: data.transaction.id,
+                descricao: `${operationType} - ${serviceType}`,
+                valor: Number(data.transaction.value), // garante número
+                date: data.transaction.date,
+                tipo: operationType === "Lavagem" ? "entrada" : "saida", // define tipo
+            };
+            
+            onAddTransaction(newTransaction); // atualiza o Dashboard
+
         } catch (err: any) {
             setError(err.message);
         }

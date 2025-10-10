@@ -5,10 +5,11 @@ const router = express.Router();
 
 router.get('/:userId', async (req, res) => {
     const { userId } = req.params;
+    
 
     try {
         const result = await pool.query(
-            'SELECT * FROM transactions WHERE usuario_id = $1 ORDER BY data DESC',
+            'SELECT * FROM transactions WHERE user_id = $1 ORDER BY date DESC',
             [userId]
         );
         res.json(result.rows);
