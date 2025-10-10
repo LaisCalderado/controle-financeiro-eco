@@ -4,6 +4,7 @@ import axios from 'axios';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import SaldoCard from '../components/UI/SaldoCards';
+import TransactionsChart from '../components/TransactionsChart';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
@@ -13,6 +14,7 @@ interface Transacao {
     valor: number;
     date: string;
     tipo: 'entrada' | 'saida';
+    serviceType: string; // <- adiciona aqui
 }
 
 const DashboardPage: React.FC = () => {
@@ -97,6 +99,9 @@ const DashboardPage: React.FC = () => {
 
             <div className="chart-container">
                 <Bar data={chartData} options={{ responsive: true, plugins: { legend: { display: false } } }} />
+            </div>
+            <div className="dashboard-charts">
+                <TransactionsChart transacoes={transacoes} />
             </div>
 
             <table>

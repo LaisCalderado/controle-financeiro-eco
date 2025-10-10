@@ -15,6 +15,8 @@ const RegisterTransactionForm: React.FC<Props> = ({ userId, onAddTransaction }) 
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
 
+    let valorFinal = parseFloat(value);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
@@ -46,12 +48,17 @@ const RegisterTransactionForm: React.FC<Props> = ({ userId, onAddTransaction }) 
             setDate("");
             setValue("");
 
+            if (serviceType === "Lavamos pra voce" || serviceType === "Lavamos pra você" ){
+                valorFinal += 15;
+            }
+
             const newTransaction = {
                 id: data.transaction.id,
                 descricao: `${operationType} - ${serviceType}`,
-                valor: Number(data.transaction.value),
+                valor: valorFinal,
                 date: data.transaction.date,
                 tipo: operationType === "Lavagem" ? "entrada" : "saida",
+                serviceType, // <- adiciona aqui
             };
 
             onAddTransaction(newTransaction);
