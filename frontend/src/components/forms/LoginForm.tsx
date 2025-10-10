@@ -13,7 +13,7 @@ export default function LoginForm() {
         setError("");
 
         try {
-            const response = await fetch("http://localhost:3333/auth/login", {
+            const response = await fetch("http://localhost:3333/api/auth/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, password }),
@@ -52,8 +52,19 @@ export default function LoginForm() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                     />
-
-                    <button type="submit">Entrar</button>
+                    <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+                        <button type="submit" style={{ flex: 1 }}>
+                            Entrar
+                        </button>
+                        <button
+                            type="button"
+                            className="register-btn"
+                            style={{ flex: 1 }}
+                            onClick={() => navigate('/register-user')}
+                        >
+                            Cadastrar usuário
+                        </button>
+                    </div>
                     {error && <div className="error">{error}</div>}
                 </form>
             </div>
