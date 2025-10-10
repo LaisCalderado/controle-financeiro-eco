@@ -14,7 +14,7 @@ const UserList: React.FC = () => {
     useEffect(() => {
         const fetchUsers = async () => {
             try {
-                const response = await fetch('http://localhost:3333/auth/users');
+                const response = await fetch('https://controle-financeiro-eco-back.onrender.com/auth/users');
                 const data = await response.json();
                 if (!response.ok) {
                     setError(data.error || 'Erro ao buscar usuários');

@@ -12,7 +12,7 @@ export default function RegisterForm() {
         setError("");
 
         try {
-            const response = await fetch("http://localhost:3333/auth/register", {
+            const response = await fetch("https://controle-financeiro-eco-back.onrender.com/auth/register", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ name, email, password }),

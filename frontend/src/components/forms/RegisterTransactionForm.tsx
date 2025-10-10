@@ -67,7 +67,7 @@ const RegisterTransactionForm: React.FC<Props> = ({ userId, onAddTransaction }) 
         console.log("Payload enviado:", payload);
 
         try {
-            const response = await fetch("http://localhost:3333/api/transactions", {
+            const response = await fetch("https://controle-financeiro-eco-back.onrender.com/api/transactions", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)

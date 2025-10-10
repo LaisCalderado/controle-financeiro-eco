@@ -29,7 +29,7 @@ const DashboardPage: React.FC = () => {
 
         setLoading(true);
         try {
-            const response = await axios.get(`http://localhost:3333/dashboard/${userId}`);
+            const response = await axios.get(`https://controle-financeiro-eco-back.onrender.com/dashboard/${userId}`);
 
             const data: Transacao[] = response.data.map((t: any) => ({
                 id: t.id,
