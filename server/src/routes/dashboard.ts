@@ -9,7 +9,7 @@ router.get('/:userId', async (req, res) => {
 
     try {
         const result = await pool.query(
-            'SELECT * FROM transactions WHERE user_id = $1 ORDER BY date DESC',
+            'SELECT * FROM transactions WHERE user_id = $1 ORDER BY data DESC',
             [userId]
         );
         res.json(result.rows);
