@@ -22,7 +22,6 @@ export default function LoginForm() {
             const data = await response.json();
             if (!response.ok) throw new Error(data.error || "Error ao fazer login");
 
-            alert("Login realizado com sucesso!");
             console.log("Token JWT: ", data.token);
 
             // Aqui você redireciona para o dashboard
