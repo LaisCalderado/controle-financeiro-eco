@@ -2,10 +2,11 @@ import { ReactNode } from "react";
 
 interface CardProps {
     children: ReactNode;
+    className?: string; // permite passar classes extras
 }
 
-const Card = ({ children }: CardProps) => {
-    return <div className="card">{children}</div>;
+const Card = ({ children, className }: CardProps) => {
+    return <div className={`card ${className || ""}`}>{children}</div>;
 };
 
 export default Card;

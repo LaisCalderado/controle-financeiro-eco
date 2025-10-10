@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
+import SaldoCard from '../components/UI/SaldoCards';
 import axios from 'axios';
 
 interface Transacao {
@@ -69,6 +70,10 @@ const Dashboard: React.FC = () => {
                     ))}
                 </tbody>
             </table>
+            <div className='dashborad-saldos'>
+                <SaldoCard title="Saldo Total" amount={1234.56} color="green" />
+                <SaldoCard title="Despesas" amount={500.00} color="red" />
+            </div>
         </div>
     );
 };
