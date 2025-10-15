@@ -14,7 +14,7 @@ import MainMenu from "./components/UI/MainMenu";
 
 function AppRoutes() {
   const location = useLocation();
-  const hideMenu = location.pathname === "/register-user";
+  const hideMenu = location.pathname === "/" || location.pathname === "/register-user";
   return (
     <>
       {!hideMenu && <MainMenu />}
