@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import '../../styles/components/_forms.scss';
+import '../../styles/form.scss';
 
 interface RegisterUserFormProps {
   onRegister?: (user: any) => void;
@@ -52,40 +52,56 @@ const RegisterUserForm: React.FC<RegisterUserFormProps> = ({ onRegister }) => {
   };
 
   return (
-    <form className="register-user-form" onSubmit={handleSubmit}>
-      <h2>Cadastrar Usuário</h2>
-      <input
-        type="text"
-        placeholder="Nome"
-        value={nome}
-        onChange={e => setNome(e.target.value)}
-        required
-      />
-      <input
-        type="email"
-        placeholder="E-mail"
-        value={email}
-        onChange={e => setEmail(e.target.value)}
-        required
-      />
-      <input
-        type="password"
-        placeholder="Senha"
-        value={senha}
-        onChange={e => setSenha(e.target.value)}
-        required
-      />
-      <input
-        type="password"
-        placeholder="Confirmar Senha"
-        value={confirmarSenha}
-        onChange={e => setConfirmarSenha(e.target.value)}
-        required
-      />
-      <button type="submit">Cadastrar</button>
-      {error && <div className="error">{error}</div>}
-      {success && <div className="success">{success}</div>}
-    </form>
+    <div className="form-container">
+      <div className="form-box">
+        <h2>Cadastrar Usuário</h2>
+        <form onSubmit={handleSubmit}>
+          <input
+            type="text"
+            placeholder="Nome"
+            value={nome}
+            onChange={e => setNome(e.target.value)}
+            required
+          />
+          <input
+            type="email"
+            placeholder="E-mail"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            required
+          />
+          <input
+            type="password"
+            placeholder="Senha"
+            value={senha}
+            onChange={e => setSenha(e.target.value)}
+            required
+          />
+          <input
+            type="password"
+            placeholder="Confirmar Senha"
+            value={confirmarSenha}
+            onChange={e => setConfirmarSenha(e.target.value)}
+            required
+          />
+          <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+            <button type="submit" style={{ flex: 1 }}>
+              Cadastrar
+            </button>
+            <button
+              type="button"
+              style={{ flex: 1 }}
+              onClick={() => navigate('/')}
+            >
+              Voltar ao login
+            </button>
+          </div>
+          {error && <div className="error">{error}</div>}
+          {success && <div className="success">{success}</div>}
+        </form>
+      </div>
+
+    </div>
   );
 };
 

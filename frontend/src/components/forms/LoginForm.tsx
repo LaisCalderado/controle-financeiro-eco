@@ -41,24 +41,27 @@ export default function LoginForm() {
             <div className="form-box">
                 <h2>Entrar</h2>
                 <form onSubmit={handleSubmit}>
-                    <input type="email"
+                    <input
+                        type="email"
                         placeholder="E-mail"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
+                        required
                     />
-                    <input type="password"
+                    <input
+                        type="password"
                         placeholder="Senha"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
+                        required
                     />
-                    <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
-                        <button type="submit" style={{ flex: 1 }}>
+                    <div className="form-actions">
+                        <button type="submit">
                             Entrar
                         </button>
                         <button
                             type="button"
-                            className="register-btn"
-                            style={{ flex: 1 }}
+                            className="secondary-btn"
                             onClick={() => navigate('/register-user')}
                         >
                             Cadastrar usuário
