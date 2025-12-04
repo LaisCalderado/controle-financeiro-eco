@@ -11,7 +11,6 @@ Sistema de controle financeiro completo desenvolvido com React e Node.js, permit
 - [Instalação](#instalação)
 - [Configuração](#configuração)
 - [Executando o Projeto](#executando-o-projeto)
-- [Estrutura do Projeto](#estrutura-do-projeto)
 - [API Endpoints](#api-endpoints)
 - [Contribuindo](#contribuindo)
 
@@ -210,9 +209,6 @@ Contribuições são bem-vindas! Para contribuir:
 4. Push para a branch (`git push origin feature/AmazingFeature`)
 5. Abra um Pull Request
 
-## 📄 Licença
-
-Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
 
 ## 👥 Autores
 
