@@ -57,9 +57,9 @@ const RegisterUserForm: React.FC<RegisterUserFormProps> = ({ onRegister }) => {
       setSenha('');
       setConfirmarSenha('');
       
-      if (onRegister) onRegister(data.user);
+      if (onRegister) onRegister(response.data.user);
     } catch (err: any) {
-      setError(err.message);
+      setError(err.response?.data?.error || err.message);
     } finally {
       setIsLoading(false);
     }
