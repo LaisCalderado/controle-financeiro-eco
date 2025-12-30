@@ -108,7 +108,17 @@ export default function TransacaoForm({ tipo, transacao, onSubmit, onCancel, isL
         <select
           id="categoria"
           value={formData.categoria}
-          onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
+          onChange={(e) => {
+            const categoria = e.target.value;
+            const novoFormData: any = { ...formData, categoria };
+            
+            // Se for receita e categoria for lavagem ou secagem, preenche valor com 16.99
+            if (tipo === 'receita' && (categoria === 'lavagem' || categoria === 'secagem')) {
+              novoFormData.valor = '16.99';
+            }
+            
+            setFormData(novoFormData);
+          }}
           required
           className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
