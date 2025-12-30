@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 
 const categoriasReceita = [
   { value: 'lavagem', label: 'Lavagem' },
+  { value: 'secagem', label: 'Secagem' },
   { value: 'passadoria', label: 'Passadoria' },
   { value: 'delivery', label: 'Delivery' },
   { value: 'tingimento', label: 'Tingimento' },
