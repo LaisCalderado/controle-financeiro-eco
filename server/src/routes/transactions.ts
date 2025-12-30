@@ -38,7 +38,7 @@ router.get('/transactions', verifyToken, async (req: any, res) => {
 // Registrar nova transação
 router.post('/transactions', verifyToken, async (req: any, res) => {
     console.log('REQ.BODY:', req.body);
-    const { data, valor, tipo, categoria, descricao } = req.body;
+    const { data, valor, tipo, categoria, descricao, tipo_servico } = req.body;
 
     // Campos obrigatórios
     if (!data || valor == null || valor === "" || !tipo) {
@@ -46,9 +46,9 @@ router.post('/transactions', verifyToken, async (req: any, res) => {
     }
 
     try {
-        const query = `INSERT INTO transacoes (usuario_id, data, valor, tipo, categoria, descricao) 
-                       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;`;
-        const values = [req.userId, data, valor, tipo, categoria || null, descricao || null];
+        const query = `INSERT INTO transacoes (usuario_id, data, valor, tipo, tipo_servico, categoria, descricao) 
+                       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *;`;
+        const values = [req.userId, data, valor, tipo, tipo_servico || null, categoria || null, descricao || null];
         
         const result = await pool.query(query, values);
         res.status(201).json(result.rows[0]);
@@ -61,15 +61,15 @@ router.post('/transactions', verifyToken, async (req: any, res) => {
 // Atualizar transação
 router.put('/transactions/:id', verifyToken, async (req: any, res) => {
     const { id } = req.params;
-    const { data, valor, tipo, categoria, descricao } = req.body;
+    const { data, valor, tipo, categoria, descricao, tipo_servico } = req.body;
 
     try {
         const result = await pool.query(
             `UPDATE transacoes 
-             SET data = $1, valor = $2, tipo = $3, categoria = $4, descricao = $5
-             WHERE id = $6 AND usuario_id = $7
+             SET data = $1, valor = $2, tipo = $3, tipo_servico = $4, categoria = $5, descricao = $6
+             WHERE id = $7 AND usuario_id = $8
              RETURNING *`,
-            [data, valor, tipo, categoria, descricao, id, req.userId]
+            [data, valor, tipo, tipo_servico || null, categoria, descricao, id, req.userId]
         );
 
         if (result.rows.length === 0) {
