@@ -2,7 +2,7 @@
 import { api } from '../services/api';
 import { startOfMonth, endOfMonth, parseISO, isWithinInterval, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { FileText, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
+import { FileText, TrendingUp, TrendingDown, Wallet, Sparkles, Star } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Sidebar from '../components/layout/Sidebar';
 import StatCard from '../components/dashboard/StatCard';
@@ -14,6 +14,7 @@ interface Transacao {
   descricao: string;
   valor: number;
   data: string;
+  tipo_servico?: 'selfservice' | 'completo' | null;
   categoria?: string;
 }
 
@@ -64,7 +65,7 @@ export default function Relatorio() {
     }
   };
 
-  const { receitasFiltradas, despesasFiltradas, resumo, receitasPorCategoria, despesasPorCategoria } = useMemo(() => {
+  const { receitasFiltradas, despesasFiltradas, resumo, receitasPorCategoria, despesasPorCategoria, receitasPorTipo } = useMemo(() => {
     const receitas = transacoes.filter((t) => t.tipo === 'receita');
     const despesas = transacoes.filter((t) => t.tipo === 'despesa');
 
@@ -78,6 +79,11 @@ export default function Relatorio() {
       return isWithinInterval(data, { start: filtro.dataInicio, end: filtro.dataFim });
     });
 
+    const receitasSelfService = receitasFiltradas.filter(r => r.tipo_servico === 'selfservice');
+    const receitasCompleto = receitasFiltradas.filter(r => r.tipo_servico === 'completo');
+    
+    const totalSelfService = receitasSelfService.reduce((sum, r) => sum + (Number(r.valor) || 0), 0);
+    const totalCompleto = receitasCompleto.reduce((sum, r) => sum + (Number(r.valor) || 0), 0);
     const totalReceitas = receitasFiltradas.reduce((sum, r) => sum + (Number(r.valor) || 0), 0);
     const totalDespesas = despesasFiltradas.reduce((sum, d) => sum + (Number(d.valor) || 0), 0);
     const saldo = totalReceitas - totalDespesas;
@@ -102,9 +108,10 @@ export default function Relatorio() {
     return {
       receitasFiltradas,
       despesasFiltradas,
-      resumo: { totalReceitas, totalDespesas, saldo, margemLucro },
+      resumo: { totalReceitas, totalDespesas, totalSelfService, totalCompleto, saldo, margemLucro },
       receitasPorCategoria,
-      despesasPorCategoria
+      despesasPorCategoria,
+      receitasPorTipo: { selfService: receitasSelfService, completo: receitasCompleto }
     };
   }, [transacoes, filtro]);
 
@@ -133,7 +140,19 @@ export default function Relatorio() {
             <FiltroData onFilterChange={setFiltro} currentFilter={filtro} />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
+            <StatCard
+              title="Self-Service"
+              value={`R$ ${resumo.totalSelfService.toFixed(2)}`}
+              icon={Sparkles}
+              variant="primary"
+            />
+            <StatCard
+              title="Serviço Completo"
+              value={`R$ ${resumo.totalCompleto.toFixed(2)}`}
+              icon={Star}
+              variant="default"
+            />
             <StatCard
               title="Total Receitas"
               value={`R$ ${resumo.totalReceitas.toFixed(2)}`}
@@ -158,6 +177,63 @@ export default function Relatorio() {
               icon={FileText}
               variant="default"
             />
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm mb-8">
+            <div className="p-6 border-b border-slate-200">
+              <h3 className="text-lg font-semibold text-slate-900">Receitas por Tipo de Serviço</h3>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="p-6 rounded-xl bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-3 bg-blue-500 rounded-lg">
+                      <Sparkles className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-slate-600">Self-Service</p>
+                      <p className="text-2xl font-bold text-slate-900">R$ {resumo.totalSelfService.toFixed(2)}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-600">Transações:</span>
+                      <span className="font-medium">{receitasPorTipo.selfService.length}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-600">% do Total:</span>
+                      <span className="font-medium">
+                        {resumo.totalReceitas > 0 ? ((resumo.totalSelfService / resumo.totalReceitas) * 100).toFixed(1) : 0}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6 rounded-xl bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-200">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-3 bg-amber-500 rounded-lg">
+                      <Star className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-slate-600">Serviço Completo</p>
+                      <p className="text-2xl font-bold text-slate-900">R$ {resumo.totalCompleto.toFixed(2)}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-600">Transações:</span>
+                      <span className="font-medium">{receitasPorTipo.completo.length}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-600">% do Total:</span>
+                      <span className="font-medium">
+                        {resumo.totalReceitas > 0 ? ((resumo.totalCompleto / resumo.totalReceitas) * 100).toFixed(1) : 0}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
