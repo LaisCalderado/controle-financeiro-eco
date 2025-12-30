@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth';
 import dashboardRoutes from './routes/dashboard';
 import transactionRouter from './routes/transactions';
+import setupRoutes from './routes/setup';
 
 dotenv.config();
 
@@ -13,6 +14,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/dashboard', dashboardRoutes);
 app.use('/api', transactionRouter);
+app.use('/setup', setupRoutes);
 
 const PORT = process.env.PORT || 3333;
 app.listen(PORT, () => {
