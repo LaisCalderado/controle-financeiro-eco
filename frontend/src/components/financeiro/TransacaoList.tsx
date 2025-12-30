@@ -99,9 +99,9 @@ export default function TransacaoList({ transacoes, tipo, onEdit, onDelete, isLo
                         {format(parseISO(transacao.data), "dd/MM/yyyy", { locale: ptBR })}
                       </span>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        categoriasLabels[transacao.categoria]?.color || 'bg-gray-100 text-gray-700'
+                        categoriaStyles[transacao.categoria]?.color || 'bg-gray-100 text-gray-700'
                       }`}>
-                        {categoriasLabels[transacao.categoria]?.label || transacao.categoria}
+                        {categoriaStyles[transacao.categoria]?.label || transacao.categoria}
                       </span>
                     </div>
                   </div>
