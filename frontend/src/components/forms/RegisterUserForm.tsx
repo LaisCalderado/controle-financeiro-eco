@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { UserPlus, Mail, Lock, User, ArrowLeft, CheckCircle, Sparkles } from 'lucide-react';
+import { api } from '../../services/api';
 
 interface RegisterUserFormProps {
   onRegister?: (user: any) => void;
@@ -35,16 +36,14 @@ const RegisterUserForm: React.FC<RegisterUserFormProps> = ({ onRegister }) => {
     setIsLoading(true);
     
     try {
-      const response = await fetch('http://localhost:3333/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: nome, email, password: senha })
+      const response = await api.post('/api/auth/register', {
+        name: nome,
+        email,
+        password: senha
       });
       
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Erro ao cadastrar usuário');
+      if (!response.data) {
+        throw new Error('Erro ao cadastrar usuário');
       }
       
       setSuccess('Usuário cadastrado com sucesso!');

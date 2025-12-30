@@ -1,5 +1,6 @@
 // src/components/forms/RegisterForm.tsx
 import React, { useState } from 'react';
+import { api } from '../../services/api';
 
 const RegisterForm: React.FC = () => {
     const [name, setName] = useState('');
@@ -12,24 +13,20 @@ const RegisterForm: React.FC = () => {
         setMessage(''); // limpa mensagem anterior
 
         try {
-            const response = await fetch('http://localhost:3333/api/auth/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, email, password })
+            const response = await api.post('/api/auth/register', {
+                name,
+                email,
+                password
             });
 
-            const data = await response.json();
-
-            if (!response.ok) {
-                // Mostra erro retornado pelo back
-                setMessage(data.error);
-                console.error('Erro:', data);
+            if (!response.data) {
+                setMessage('Erro ao cadastrar usuário');
                 return;
             }
 
             // Sucesso
-            setMessage(`Usuário ${data.name} cadastrado com sucesso!`);
-            console.log('Usuário cadastrado:', data);
+            setMessage(`Usuário ${response.data.name} cadastrado com sucesso!`);
+            console.log('Usuário cadastrado:', response.data);
 
             // Limpa os campos
             setName('');

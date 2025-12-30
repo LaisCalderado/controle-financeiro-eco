@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { LogIn, Mail, Lock, UserPlus, Sparkles } from "lucide-react";
+import { api } from "../../services/api";
 
 export default function LoginForm() {
     const navigate = useNavigate();
@@ -16,24 +17,19 @@ export default function LoginForm() {
         setIsLoading(true);
 
         try {
-            const response = await fetch("http://localhost:3333/api/auth/login", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, password }),
-            });
+            const response = await api.post("/api/auth/login", { email, password });
 
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error || "Erro ao fazer login");
+            if (!response.data.token) throw new Error("Erro ao fazer login");
 
-            console.log("Token JWT: ", data.token);
+            console.log("Token JWT: ", response.data.token);
 
             // Salva o token no localStorage
-            localStorage.setItem("token", data.token);
+            localStorage.setItem("token", response.data.token);
 
             // Redireciona para o dashboard
             navigate('/dashboard');
         } catch (err: any) {
-            setError(err.message);
+            setError(err.response?.data?.error || err.message || "Erro ao fazer login");
         } finally {
             setIsLoading(false);
         }
