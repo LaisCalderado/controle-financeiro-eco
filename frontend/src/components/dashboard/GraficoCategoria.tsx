@@ -6,7 +6,6 @@ const COLORS = ['#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899', '#06b6d4', '#22c55e'
 const categoriasLabels: Record<string, string> = {
   lavagem: 'Lavagem',
   passadoria: 'Passadoria',
-  delivery: 'Delivery',
   agua: 'Água',
   energia: 'Energia',
   produtos: 'Produtos',

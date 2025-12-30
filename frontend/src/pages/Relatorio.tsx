@@ -26,7 +26,6 @@ interface CategoriaResumo {
 const categoriasLabels: Record<string, string> = {
   lavagem: 'Lavagem',
   passadoria: 'Passadoria',
-  delivery: 'Delivery',
   agua: 'Água',
   energia: 'Energia',
   produtos: 'Produtos',
