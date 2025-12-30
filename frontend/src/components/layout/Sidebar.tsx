@@ -2,12 +2,13 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
-  TrendingUp, 
   TrendingDown, 
   FileText, 
   LogOut, 
   X, 
-  Shirt 
+  Shirt,
+  Sparkles,
+  Star
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -30,9 +31,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
       label: 'Dashboard'
     },
     {
-      path: '/receitas',
-      icon: TrendingUp,
-      label: 'Receitas'
+      path: '/selfservice',
+      icon: Sparkles,
+      label: 'Self-Service'
+    },
+    {
+      path: '/servico-completo',
+      icon: Star,
+      label: 'Serviço Completo'
     },
     {
       path: '/despesas',
