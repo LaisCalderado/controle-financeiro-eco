@@ -38,7 +38,7 @@ export default function Despesas() {
     try {
       setIsLoading(true);
       const token = localStorage.getItem('token');
-      const response = await api.get('/transactions', {
+      const response = await api.get('/api/transactions', {
         headers: { Authorization: `Bearer ${token}` }
       });
       const despesasData = response.data.filter((t: Transacao) => t.tipo === 'despesa');
@@ -57,7 +57,9 @@ export default function Despesas() {
     });
   }, [despesas, filtro]);
 
-  const totalDespesas = despesasFiltradas.reduce((sum, d) => sum + (d.valor || 0), 0);
+  const totalDespesas = useMemo(() => {
+    return despesasFiltradas.reduce((sum, d) => sum + (Number(d.valor) || 0), 0);
+  }, [despesasFiltradas]);
 
   const handleSubmit = async (data: any) => {
     try {
@@ -69,11 +71,11 @@ export default function Despesas() {
       };
 
       if (editingDespesa) {
-        await api.put(`/transactions/${editingDespesa.id}`, dataToSend, {
+        await api.put(`/api/transactions/${editingDespesa.id}`, dataToSend, {
           headers: { Authorization: `Bearer ${token}` }
         });
       } else {
-        await api.post('/transactions', dataToSend, {
+        await api.post('/api/transactions', dataToSend, {
           headers: { Authorization: `Bearer ${token}` }
         });
       }
@@ -96,7 +98,7 @@ export default function Despesas() {
   const handleDelete = async (id: number) => {
     try {
       const token = localStorage.getItem('token');
-      await api.delete(`/transactions/${id}`, {
+      await api.delete(`/api/transactions/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       fetchDespesas();

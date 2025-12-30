@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import { api } from '../services/api';
 import { startOfMonth, endOfMonth, parseISO, isWithinInterval, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { TrendingUp, TrendingDown, Wallet, DollarSign, LogOut, Plus, Calendar, Tag, Menu } from 'lucide-react';
@@ -22,7 +22,6 @@ interface Transacao {
 }
 
 const DashboardPage: React.FC = () => {
-    const { userId } = useParams<{ userId: string }>();
     const [transacoes, setTransacoes] = useState<Transacao[]>([]);
     const [loading, setLoading] = useState(true);
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -34,17 +33,18 @@ const DashboardPage: React.FC = () => {
     });
 
     const fetchTransacoes = React.useCallback(async () => {
-        if (!userId) return;
-
         setLoading(true);
         try {
-            const response = await axios.get(`http://localhost:3333/dashboard/${userId}`);
+            const token = localStorage.getItem('token');
+            const response = await api.get('/api/transactions', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
 
             const data: Transacao[] = response.data.map((t: any) => ({
                 id: t.id,
                 descricao: t.descricao || 'Sem descrição',
                 valor: Number(t.value || t.valor) || 0,
-                data: t.date || t.createdAt || new Date().toISOString(),
+                data: t.date || t.data || t.createdAt || new Date().toISOString(),
                 tipo: t.tipo === 'receita' ? 'receita' : 'despesa',
                 categoria: t.categoria || 'Outros'
             }));
@@ -55,7 +55,7 @@ const DashboardPage: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    }, [userId]);
+    }, []);
 
     useEffect(() => { fetchTransacoes(); }, [fetchTransacoes]);
 

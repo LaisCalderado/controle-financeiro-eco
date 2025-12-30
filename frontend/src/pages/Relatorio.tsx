@@ -53,7 +53,7 @@ export default function Relatorio() {
     try {
       setIsLoading(true);
       const token = localStorage.getItem('token');
-      const response = await api.get('/transactions', {
+      const response = await api.get('/api/transactions', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setTransacoes(response.data);
@@ -78,15 +78,15 @@ export default function Relatorio() {
       return isWithinInterval(data, { start: filtro.dataInicio, end: filtro.dataFim });
     });
 
-    const totalReceitas = receitasFiltradas.reduce((sum, r) => sum + (r.valor || 0), 0);
-    const totalDespesas = despesasFiltradas.reduce((sum, d) => sum + (d.valor || 0), 0);
+    const totalReceitas = receitasFiltradas.reduce((sum, r) => sum + (Number(r.valor) || 0), 0);
+    const totalDespesas = despesasFiltradas.reduce((sum, d) => sum + (Number(d.valor) || 0), 0);
     const saldo = totalReceitas - totalDespesas;
     const margemLucro = totalReceitas > 0 ? ((saldo / totalReceitas) * 100).toFixed(1) : '0';
 
     const receitasPorCategoria = receitasFiltradas.reduce((acc, r) => {
       const cat = r.categoria || 'outros';
       if (!acc[cat]) acc[cat] = { total: 0, quantidade: 0 };
-      acc[cat].total += r.valor || 0;
+      acc[cat].total += Number(r.valor) || 0;
       acc[cat].quantidade += 1;
       return acc;
     }, {} as Record<string, CategoriaResumo>);
@@ -94,7 +94,7 @@ export default function Relatorio() {
     const despesasPorCategoria = despesasFiltradas.reduce((acc, d) => {
       const cat = d.categoria || 'outros';
       if (!acc[cat]) acc[cat] = { total: 0, quantidade: 0 };
-      acc[cat].total += d.valor || 0;
+      acc[cat].total += Number(d.valor) || 0;
       acc[cat].quantidade += 1;
       return acc;
     }, {} as Record<string, CategoriaResumo>);

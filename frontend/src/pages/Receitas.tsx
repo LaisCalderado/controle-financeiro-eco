@@ -38,7 +38,7 @@ export default function Receitas() {
     try {
       setIsLoading(true);
       const token = localStorage.getItem('token');
-      const response = await api.get('/transactions', {
+      const response = await api.get('/api/transactions', {
         headers: { Authorization: `Bearer ${token}` }
       });
       const receitasData = response.data.filter((t: Transacao) => t.tipo === 'receita');
@@ -57,7 +57,9 @@ export default function Receitas() {
     });
   }, [receitas, filtro]);
 
-  const totalReceitas = receitasFiltradas.reduce((sum, r) => sum + (r.valor || 0), 0);
+  const totalReceitas = useMemo(() => {
+    return receitasFiltradas.reduce((sum, r) => sum + (Number(r.valor) || 0), 0);
+  }, [receitasFiltradas]);
 
   const handleSubmit = async (data: any) => {
     try {
@@ -69,11 +71,11 @@ export default function Receitas() {
       };
 
       if (editingReceita) {
-        await api.put(`/transactions/${editingReceita.id}`, dataToSend, {
+        await api.put(`/api/transactions/${editingReceita.id}`, dataToSend, {
           headers: { Authorization: `Bearer ${token}` }
         });
       } else {
-        await api.post('/transactions', dataToSend, {
+        await api.post('/api/transactions', dataToSend, {
           headers: { Authorization: `Bearer ${token}` }
         });
       }
