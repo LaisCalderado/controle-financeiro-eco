@@ -13,7 +13,7 @@ const verifyToken = (req: any, res: any, next: any) => {
     }
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret') as any;
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'chave_secreta') as any;
         req.userId = decoded.id;
         next();
     } catch (error) {
