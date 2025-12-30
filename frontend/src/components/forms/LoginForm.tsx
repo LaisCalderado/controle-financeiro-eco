@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "../../styles/form.scss";
 
 export default function LoginForm() {
     const navigate = useNavigate();
@@ -13,7 +12,7 @@ export default function LoginForm() {
         setError("");
 
         try {
-            const response = await fetch("https://controle-financeiro-eco-back.onrender.com/api/auth/login", {
+            const response = await fetch("http://localhost:3333/api/auth/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, password }),
@@ -25,8 +24,6 @@ export default function LoginForm() {
             console.log("Token JWT: ", data.token);
 
             // Aqui você redireciona para o dashboard
-            // Se você tiver o ID do usuário no retorno, use: data.userId
-            const userId = data.user?.id || 1; // exemplo
             navigate(`/dashboard/${data.user.id}`);
 
             // Exemplo: salva o token no localStorage

@@ -1,49 +1,52 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
-import { Bar } from 'react-chartjs-2';
-import SaldoCard from '../components/UI/SaldoCards';
-import TransactionsChart from '../components/TransactionsChart';
+import { startOfMonth, endOfMonth, parseISO, isWithinInterval, format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { TrendingUp, TrendingDown, Wallet, DollarSign, LogOut, Plus, Calendar, Tag, Menu } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+import Sidebar from '../components/layout/Sidebar';
+import StatCard from '../components/dashboard/StatCard';
+import FiltroData from '../components/dashboard/FiltroData';
+import GraficoCategoria from '../components/dashboard/GraficoCategoria';
+import GraficoEvolucao from '../components/dashboard/GraficoEvolucao';
 
 interface Transacao {
     id: number;
     descricao: string;
     valor: number;
-    date: string;
-    tipo: 'entrada' | 'saida';
-    serviceType: string;
-    paymentMethod?: string;
+    data: string;
+    tipo: 'receita' | 'despesa';
+    categoria?: string;
 }
 
 const DashboardPage: React.FC = () => {
     const { userId } = useParams<{ userId: string }>();
     const [transacoes, setTransacoes] = useState<Transacao[]>([]);
     const [loading, setLoading] = useState(true);
+    const [sidebarOpen, setSidebarOpen] = useState(false);
     const navigate = useNavigate();
+    const [filtro, setFiltro] = useState({
+        tipo: 'mes',
+        dataInicio: startOfMonth(new Date()),
+        dataFim: endOfMonth(new Date())
+    });
 
     const fetchTransacoes = React.useCallback(async () => {
         if (!userId) return;
 
         setLoading(true);
         try {
-            const response = await axios.get(`https://controle-financeiro-eco-back.onrender.com/dashboard/${userId}`);
+            const response = await axios.get(`http://localhost:3333/dashboard/${userId}`);
 
             const data: Transacao[] = response.data.map((t: any) => ({
                 id: t.id,
-                descricao: t.descricao
-                    ? t.descricao
-                    : `${t.operation_type || ""} - ${t.service_type || ""}`,
+                descricao: t.descricao || 'Sem descrição',
                 valor: Number(t.value || t.valor) || 0,
-                date: t.date || t.createdAt || "-",
-                tipo: t.tipo === 'receita' ? 'entrada'
-                    : t.tipo === 'despesa' ? 'saida'
-                    : t.operation_type === "Lavagem" || t.operation_type === "Self-service"
-                        ? "entrada"
-                        : "saida",
-                paymentMethod: t.payment_method || t.paymentMethod || ""
+                data: t.date || t.createdAt || new Date().toISOString(),
+                tipo: t.tipo === 'receita' ? 'receita' : 'despesa',
+                categoria: t.categoria || 'Outros'
             }));
 
             setTransacoes(data);
@@ -56,80 +59,283 @@ const DashboardPage: React.FC = () => {
 
     useEffect(() => { fetchTransacoes(); }, [fetchTransacoes]);
 
-    const totalReceita = transacoes
-        .filter(t => t.tipo === 'entrada')
-        .reduce((acc, t) => acc + t.valor, 0);
+    const { receitasFiltradas, despesasFiltradas, totais } = useMemo(() => {
+        const receitasFiltradas = transacoes.filter((t) => {
+            if (t.tipo !== 'receita') return false;
+            const data = parseISO(t.data);
+            return isWithinInterval(data, { start: filtro.dataInicio, end: filtro.dataFim });
+        });
 
-    const totalDespesas = transacoes
-        .filter(t => t.tipo === 'saida')
-        .reduce((acc, t) => acc + t.valor, 0);
+        const despesasFiltradas = transacoes.filter((t) => {
+            if (t.tipo !== 'despesa') return false;
+            const data = parseISO(t.data);
+            return isWithinInterval(data, { start: filtro.dataInicio, end: filtro.dataFim });
+        });
 
-    const saldoTotal = totalReceita - totalDespesas;
+        const totalReceitas = receitasFiltradas.reduce((sum, r) => sum + (r.valor || 0), 0);
+        const totalDespesas = despesasFiltradas.reduce((sum, d) => sum + (d.valor || 0), 0);
+        const saldo = totalReceitas - totalDespesas;
 
-    if (loading) return <p>Carregando...</p>;
+        return {
+            receitasFiltradas,
+            despesasFiltradas,
+            totais: { totalReceitas, totalDespesas, saldo }
+        };
+    }, [transacoes, filtro]);
 
-    // --- Dados para o gráfico ---
-    const chartData = {
-        labels: ['Saldo Total', 'Receita', 'Despesas'],
-        datasets: [
-            {
-                label: 'R$',
-                data: [saldoTotal, totalReceita, totalDespesas],
-                backgroundColor: ['#10b981', '#3b82f6', '#ef4444'],
-                borderRadius: 6,
-            },
-        ],
-    };
-
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex items-center justify-center">
+                <div className="text-xl font-semibold text-slate-600">Carregando...</div>
+            </div>
+        );
+    }
     return (
-        <div className="dashboard-container">
-            <div className="dashboard-header">
-                <h1>Dashboard do Usuário {userId}</h1>
-                <div>
-                    <button className="logout-btn" onClick={() => { localStorage.removeItem('token'); navigate('/'); }}>
-                        Logout
-                    </button>
-                    <button className="add-transaction-btn" onClick={() => navigate(`/controle-diario`)}>
-                        + Nova Transação
-                    </button>
+        <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+            {/* Sidebar Desktop */}
+            <aside className="hidden lg:block w-64 bg-white border-r border-slate-200 fixed h-full">
+                <Sidebar />
+            </aside>
+
+            {/* Sidebar Mobile */}
+            <AnimatePresence>
+                {sidebarOpen && (
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setSidebarOpen(false)}
+                            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+                        />
+                        <motion.aside
+                            initial={{ x: -280 }}
+                            animate={{ x: 0 }}
+                            exit={{ x: -280 }}
+                            transition={{ type: 'tween' }}
+                            className="fixed left-0 top-0 h-full w-64 bg-white z-50 lg:hidden shadow-xl"
+                        >
+                            <Sidebar onClose={() => setSidebarOpen(false)} />
+                        </motion.aside>
+                    </>
+                )}
+            </AnimatePresence>
+
+            {/* Main Content */}
+            <main className="flex-1 lg:ml-64">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                    <motion.div
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mb-8 flex items-center justify-between"
+                    >
+                        <div className="flex items-center gap-4">
+                            <button
+                                onClick={() => setSidebarOpen(true)}
+                                className="lg:hidden p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                            >
+                                <Menu className="w-6 h-6 text-slate-600" />
+                            </button>
+                            <div>
+                                <h1 className="text-3xl font-bold text-slate-900">Dashboard Financeiro</h1>
+                                <p className="text-slate-500 mt-1">Acompanhe suas finanças em tempo real</p>
+                            </div>
+                        </div>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => navigate(`/controle-diario`)}
+                                className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-md"
+                            >
+                                <Plus className="w-5 h-5" />
+                                <span className="hidden sm:inline">Nova Transação</span>
+                            </button>
+                        </div>
+                    </motion.div>
+
+                    <div className="mb-6">
+                        <FiltroData onFilterChange={setFiltro} currentFilter={filtro} />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                        <StatCard
+                            title="Total Receitas"
+                            value={`R$ ${totais.totalReceitas.toFixed(2)}`}
+                            icon={TrendingUp}
+                            variant="success"
+                        />
+                        <StatCard
+                            title="Total Despesas"
+                            value={`R$ ${totais.totalDespesas.toFixed(2)}`}
+                            icon={TrendingDown}
+                            variant="danger"
+                        />
+                        <StatCard
+                            title="Saldo Atual"
+                            value={`R$ ${totais.saldo.toFixed(2)}`}
+                            icon={Wallet}
+                            variant={totais.saldo >= 0 ? 'primary' : 'danger'}
+                        />
+                        <StatCard
+                            title="Transações"
+                            value={receitasFiltradas.length + despesasFiltradas.length}
+                            icon={DollarSign}
+                            variant="default"
+                        />
+                    </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <GraficoCategoria
+                        dados={receitasFiltradas}
+                        tipo="receita"
+                        titulo="Receitas por Categoria"
+                    />
+                    <GraficoCategoria
+                        dados={despesasFiltradas}
+                        tipo="despesa"
+                        titulo="Despesas por Categoria"
+                    />
                 </div>
-            </div>
+                <div className="mb-8">
+                    <GraficoEvolucao
+                        receitas={receitasFiltradas}
+                        despesas={despesasFiltradas}
+                        dataInicio={filtro.dataInicio}
+                        dataFim={filtro.dataFim}
+                        agrupamento={filtro.tipo === 'ano' ? 'mes' : 'dia'}
+                    />
+                </div>
 
-            <div className='dashboard-saldos'>
-                <SaldoCard title="Saldo Total" amount={saldoTotal} color="green" />
-                <SaldoCard title="Receita" amount={totalReceita} color="blue" />
-                <SaldoCard title="Despesas" amount={totalDespesas} color="red" />
-            </div>
+                {/* Seção de Receitas */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="bg-white rounded-2xl shadow-lg p-6"
+                    >
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                                <TrendingUp className="w-5 h-5 text-emerald-500" />
+                                Receitas Recentes
+                            </h2>
+                            <span className="text-sm text-slate-500">
+                                {receitasFiltradas.length} {receitasFiltradas.length === 1 ? 'receita' : 'receitas'}
+                            </span>
+                        </div>
+                        <div className="space-y-3 max-h-96 overflow-y-auto">
+                            <AnimatePresence mode="popLayout">
+                                {receitasFiltradas.length === 0 ? (
+                                    <motion.div
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        className="text-center py-8 text-slate-400"
+                                    >
+                                        <TrendingUp className="w-12 h-12 mx-auto mb-2 opacity-30" />
+                                        <p>Nenhuma receita no período</p>
+                                    </motion.div>
+                                ) : (
+                                    receitasFiltradas.slice(0, 10).map((receita) => (
+                                        <motion.div
+                                            key={receita.id}
+                                            initial={{ opacity: 0, x: -20 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            exit={{ opacity: 0, x: 20 }}
+                                            className="flex items-center justify-between p-3 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition-colors"
+                                        >
+                                            <div className="flex-1">
+                                                <p className="font-medium text-slate-900">{receita.descricao}</p>
+                                                <div className="flex items-center gap-3 mt-1">
+                                                    <span className="flex items-center gap-1 text-xs text-slate-500">
+                                                        <Calendar className="w-3 h-3" />
+                                                        {format(parseISO(receita.data), "dd/MM/yyyy", { locale: ptBR })}
+                                                    </span>
+                                                    {receita.categoria && (
+                                                        <span className="flex items-center gap-1 text-xs text-slate-500">
+                                                            <Tag className="w-3 h-3" />
+                                                            {receita.categoria}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="font-bold text-emerald-600">
+                                                    + R$ {receita.valor.toFixed(2)}
+                                                </p>
+                                            </div>
+                                        </motion.div>
+                                    ))
+                                )}
+                            </AnimatePresence>
+                        </div>
+                    </motion.div>
 
-            <div className="chart-container">
-                <Bar data={chartData} options={{ responsive: true, plugins: { legend: { display: false } } }} />
-            </div>
-            <div className="dashboard-charts">
-                <TransactionsChart transacoes={transacoes} />
-            </div>
-
-            <table>
-                <thead>
-                    <tr>
-                        <th>Descrição</th>
-                        <th>Valor</th>
-                        <th>Data</th>
-                        <th>Tipo</th>
-                        <th>Método</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {transacoes.map(t => (
-                        <tr key={t.id}>
-                            <td>{t.descricao}</td>
-                            <td>{!isNaN(t.valor) ? t.valor.toFixed(2) : "0.00"}</td>
-                            <td>{t.date !== "-" ? new Date(t.date).toLocaleDateString() : "-"}</td>
-                            <td>{t.tipo}</td>
-                            <td>{t.tipo === 'entrada' ? t.paymentMethod : '-'}</td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
+                    {/* Seção de Despesas */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                        className="bg-white rounded-2xl shadow-lg p-6"
+                    >
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                                <TrendingDown className="w-5 h-5 text-rose-500" />
+                                Despesas Recentes
+                            </h2>
+                            <span className="text-sm text-slate-500">
+                                {despesasFiltradas.length} {despesasFiltradas.length === 1 ? 'despesa' : 'despesas'}
+                            </span>
+                        </div>
+                        <div className="space-y-3 max-h-96 overflow-y-auto">
+                            <AnimatePresence mode="popLayout">
+                                {despesasFiltradas.length === 0 ? (
+                                    <motion.div
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        className="text-center py-8 text-slate-400"
+                                    >
+                                        <TrendingDown className="w-12 h-12 mx-auto mb-2 opacity-30" />
+                                        <p>Nenhuma despesa no período</p>
+                                    </motion.div>
+                                ) : (
+                                    despesasFiltradas.slice(0, 10).map((despesa) => (
+                                        <motion.div
+                                            key={despesa.id}
+                                            initial={{ opacity: 0, x: -20 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            exit={{ opacity: 0, x: 20 }}
+                                            className="flex items-center justify-between p-3 bg-rose-50 rounded-lg hover:bg-rose-100 transition-colors"
+                                        >
+                                            <div className="flex-1">
+                                                <p className="font-medium text-slate-900">{despesa.descricao}</p>
+                                                <div className="flex items-center gap-3 mt-1">
+                                                    <span className="flex items-center gap-1 text-xs text-slate-500">
+                                                        <Calendar className="w-3 h-3" />
+                                                        {format(parseISO(despesa.data), "dd/MM/yyyy", { locale: ptBR })}
+                                                    </span>
+                                                    {despesa.categoria && (
+                                                        <span className="flex items-center gap-1 text-xs text-slate-500">
+                                                            <Tag className="w-3 h-3" />
+                                                            {despesa.categoria}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="font-bold text-rose-600">
+                                                    - R$ {despesa.valor.toFixed(2)}
+                                                </p>
+                                            </div>
+                                        </motion.div>
+                                    ))
+                                )}
+                            </AnimatePresence>
+                        </div>
+                    </motion.div>
+                </div>
+                </div>
+            </main>
         </div>
     );
 };

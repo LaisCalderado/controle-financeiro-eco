@@ -1,0 +1,229 @@
+/* Tailwind CSS */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Variáveis e estilos base */
+:root {
+  --color-primary: #3b82f6;
+  --color-success: #10b981;
+  --color-danger: #f43f5e;
+  --gradient-dashboard: linear-gradient(to bottom right, #f8fafc, #ffffff, #eff6ff);
+}
+
+/* Reset e estilos base */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Estilos para formulários de login e cadastro */
+@layer components {
+  .form-container {
+    @apply max-w-md mx-auto my-10 p-8 bg-white bg-opacity-85 rounded-3xl shadow-xl backdrop-blur-sm;
+  }
+
+  .form-box h2 {
+    @apply text-3xl font-bold text-emerald-500 text-center mb-6;
+  }
+
+  .form-box form {
+    @apply flex flex-col gap-5;
+  }
+
+  .form-box input {
+    @apply px-4 py-3 text-base border-2 border-gray-300 rounded-xl bg-white bg-opacity-70 shadow-sm transition-all;
+  }
+
+  .form-box input:focus {
+    @apply outline-none border-emerald-500 shadow-emerald-200 shadow-md;
+  }
+
+  .form-box button[type="submit"] {
+    @apply px-5 py-3 bg-gradient-to-r from-emerald-500 to-blue-500 text-white font-bold rounded-2xl cursor-pointer text-base shadow-md transition-all;
+  }
+
+  .form-box button[type="submit"]:hover {
+    @apply from-blue-500 to-emerald-500 shadow-lg -translate-y-0.5 scale-105;
+  }
+
+  .form-actions {
+    @apply flex gap-3 mt-2;
+  }
+
+  .secondary-btn {
+    @apply bg-slate-200 text-teal-600 border-2 border-teal-200 font-medium rounded-2xl shadow-sm transition-all;
+  }
+
+  .secondary-btn:hover {
+    @apply bg-teal-100 text-emerald-800 shadow-md;
+  }
+
+  .password-input-wrapper {
+    @apply relative;
+  }
+
+  .password-input-wrapper input {
+    @apply pr-12;
+  }
+
+  .toggle-password {
+    @apply absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-0 p-2 cursor-pointer text-xl flex items-center justify-center transition-opacity opacity-50;
+  }
+
+  .toggle-password:hover {
+    @apply opacity-100;
+  }
+
+  .toggle-password:focus {
+    @apply outline-none;
+  }
+
+  .error {
+    @apply text-red-500 font-medium text-sm;
+  }
+
+  .success {
+    @apply text-emerald-500 font-medium text-sm;
+  }
+
+  /* MainMenu styles */
+  .main-menu {
+    @apply flex gap-4 p-4 bg-white shadow-md rounded-lg mb-6;
+  }
+
+  .main-menu a {
+    @apply px-4 py-2 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors;
+  }
+
+  .main-menu a.active {
+    @apply bg-blue-500 text-white;
+  }
+}
+
+/* Animações personalizadas */
+@keyframes fadeIn {
+  from { 
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Classes utilitárias */
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.animate-slideIn {
+  animation: slideIn 0.4s ease-out;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.3s ease-out;
+}
+
+/* Scrollbar personalizado */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Transições suaves */
+.transition-smooth {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Sombras customizadas */
+.shadow-card {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+.shadow-card-hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Gradientes */
+.gradient-primary {
+  background: linear-gradient(135deg, var(--color-primary), #8b5cf6);
+}
+
+.gradient-success {
+  background: linear-gradient(135deg, var(--color-success), #059669);
+}
+
+.gradient-danger {
+  background: linear-gradient(135deg, var(--color-danger), #dc2626);
+}
+
+/* Estilos de foco acessíveis */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Loader */
+.loader {
+  border: 3px solid #f3f4f6;
+  border-top: 3px solid var(--color-primary);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
