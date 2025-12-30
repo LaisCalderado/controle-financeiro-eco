@@ -109,7 +109,7 @@ export default function TransacaoList({ transacoes, tipo, onEdit, onDelete, isLo
                 </div>
                 <div className="flex items-center gap-3">
                   <span className={`text-lg font-bold ${tipo === 'receita' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                    {tipo === 'receita' ? '+' : '-'} R$ {transacao.valor?.toFixed(2)}
+                    {tipo === 'receita' ? '+' : '-'} R$ {Number(transacao.valor).toFixed(2)}
                   </span>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
