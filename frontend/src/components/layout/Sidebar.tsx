@@ -51,7 +51,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-screen bg-white">
       {/* Header */}
       <div className="p-6 border-b border-slate-100">
         <div className="flex items-center justify-between">
