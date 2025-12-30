@@ -9,7 +9,6 @@ const categoriasReceita = [
   { value: 'secagem', label: 'Secagem' },
   { value: 'passadoria', label: 'Passadoria' },
   { value: 'delivery', label: 'Delivery' },
-  { value: 'tingimento', label: 'Tingimento' },
   { value: 'outros', label: 'Outros' }
 ];
 

@@ -150,7 +150,6 @@ export default function ServicoCompleto() {
   const categorias = [
     { value: 'lavagem', label: 'Lavagem' },
     { value: 'passadoria', label: 'Passadoria' },
-    { value: 'tingimento', label: 'Tingimento' },
     { value: 'outros', label: 'Outros' }
   ];
 

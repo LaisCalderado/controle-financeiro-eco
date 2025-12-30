@@ -27,7 +27,6 @@ const categoriasLabels: Record<string, string> = {
   lavagem: 'Lavagem',
   passadoria: 'Passadoria',
   delivery: 'Delivery',
-  tingimento: 'Tingimento',
   agua: 'Água',
   energia: 'Energia',
   produtos: 'Produtos',

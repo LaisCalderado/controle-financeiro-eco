@@ -4,11 +4,10 @@ import { ptBR } from 'date-fns/locale';
 import { Pencil, Trash2, TrendingUp, TrendingDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const categoriasLabels: Record<string, { label: string; color: string }> = {
+const categoriaStyles: Record<string, { label: string; color: string }> = {
   lavagem: { label: 'Lavagem', color: 'bg-blue-100 text-blue-700' },
   passadoria: { label: 'Passadoria', color: 'bg-purple-100 text-purple-700' },
-  delivery: { label: 'Delivery', color: 'bg-amber-100 text-amber-700' },
-  tingimento: { label: 'Tingimento', color: 'bg-pink-100 text-pink-700' },
+  delivery: { label: 'Delivery', color: 'bg-green-100 text-green-700' },
   agua: { label: 'Água', color: 'bg-cyan-100 text-cyan-700' },
   energia: { label: 'Energia', color: 'bg-yellow-100 text-yellow-700' },
   produtos: { label: 'Produtos', color: 'bg-green-100 text-green-700' },
