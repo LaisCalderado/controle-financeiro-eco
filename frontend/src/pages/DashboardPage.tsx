@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { startOfMonth, endOfMonth, parseISO, isWithinInterval, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { TrendingUp, TrendingDown, Wallet, DollarSign, LogOut, Plus, Calendar, Tag, Menu } from 'lucide-react';
+import { TrendingUp, TrendingDown, Wallet, DollarSign, LogOut, Plus, Calendar, Tag, Menu, Sparkles, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import Sidebar from '../components/layout/Sidebar';
@@ -18,6 +18,7 @@ interface Transacao {
     valor: number;
     data: string;
     tipo: 'receita' | 'despesa';
+    tipo_servico?: 'selfservice' | 'completo' | null;
     categoria?: string;
 }
 
@@ -46,6 +47,7 @@ const DashboardPage: React.FC = () => {
                 valor: Number(t.value || t.valor) || 0,
                 data: t.date || t.data || t.createdAt || new Date().toISOString(),
                 tipo: t.tipo === 'receita' ? 'receita' : 'despesa',
+                tipo_servico: t.tipo_servico || null,
                 categoria: t.categoria || 'Outros'
             }));
 
@@ -72,14 +74,19 @@ const DashboardPage: React.FC = () => {
             return isWithinInterval(data, { start: filtro.dataInicio, end: filtro.dataFim });
         });
 
-        const totalReceitas = receitasFiltradas.reduce((sum, r) => sum + (r.valor || 0), 0);
-        const totalDespesas = despesasFiltradas.reduce((sum, d) => sum + (d.valor || 0), 0);
+        const receitasSelfService = receitasFiltradas.filter(r => r.tipo_servico === 'selfservice');
+        const receitasCompleto = receitasFiltradas.filter(r => r.tipo_servico === 'completo');
+
+        const totalReceitas = receitasFiltradas.reduce((sum, r) => sum + Number(r.valor || 0), 0);
+        const totalDespesas = despesasFiltradas.reduce((sum, d) => sum + Number(d.valor || 0), 0);
+        const totalSelfService = receitasSelfService.reduce((sum, r) => sum + Number(r.valor || 0), 0);
+        const totalCompleto = receitasCompleto.reduce((sum, r) => sum + Number(r.valor || 0), 0);
         const saldo = totalReceitas - totalDespesas;
 
         return {
             receitasFiltradas,
             despesasFiltradas,
-            totais: { totalReceitas, totalDespesas, saldo }
+            totais: { totalReceitas, totalDespesas, totalSelfService, totalCompleto, saldo }
         };
     }, [transacoes, filtro]);
 
@@ -143,7 +150,7 @@ const DashboardPage: React.FC = () => {
                         </div>
                         <div className="flex gap-3">
                             <button
-                                onClick={() => navigate(`/controle-diario`)}
+                                onClick={() => navigate(`/selfservice`)}
                                 className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-md"
                             >
                                 <Plus className="w-5 h-5" />
@@ -156,7 +163,19 @@ const DashboardPage: React.FC = () => {
                         <FiltroData onFilterChange={setFiltro} currentFilter={filtro} />
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+                        <StatCard
+                            title="Self-Service"
+                            value={`R$ ${totais.totalSelfService.toFixed(2)}`}
+                            icon={Sparkles}
+                            variant="primary"
+                        />
+                        <StatCard
+                            title="Serviço Completo"
+                            value={`R$ ${totais.totalCompleto.toFixed(2)}`}
+                            icon={Star}
+                            variant="default"
+                        />
                         <StatCard
                             title="Total Receitas"
                             value={`R$ ${totais.totalReceitas.toFixed(2)}`}
@@ -174,12 +193,6 @@ const DashboardPage: React.FC = () => {
                             value={`R$ ${totais.saldo.toFixed(2)}`}
                             icon={Wallet}
                             variant={totais.saldo >= 0 ? 'primary' : 'danger'}
-                        />
-                        <StatCard
-                            title="Transações"
-                            value={receitasFiltradas.length + despesasFiltradas.length}
-                            icon={DollarSign}
-                            variant="default"
                         />
                     </div>
 
