@@ -88,7 +88,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
           return (
             <button
               key={item.path}
-              onClick={() => navigate(item.path)}
+              onClick={() => {
+                navigate(item.path);
+                onClose?.(); // Fecha o sidebar no mobile após clicar
+              }}
               className={`
                 flex items-center gap-3 px-4 py-3 rounded-xl transition-all w-full text-left
                 ${active 

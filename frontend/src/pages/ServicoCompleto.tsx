@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { api } from '../services/api';
 import { startOfMonth, endOfMonth, parseISO, isWithinInterval } from 'date-fns';
-import { Plus, TrendingUp, Star } from 'lucide-react';
+import { Plus, TrendingUp, Star, Menu } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '../components/layout/Sidebar';
 import StatCard from '../components/dashboard/StatCard';
@@ -24,6 +24,7 @@ export default function ServicoCompleto() {
   const [isSaving, setIsSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingReceita, setEditingReceita] = useState<Transacao | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [filtro, setFiltro] = useState({
     tipo: 'mes',
     dataInicio: startOfMonth(new Date()),
@@ -155,7 +156,34 @@ export default function ServicoCompleto() {
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-amber-50">
-      <Sidebar />
+      {/* Sidebar Desktop */}
+      <div className="hidden lg:block fixed inset-y-0 left-0 w-64 z-50">
+        <Sidebar />
+      </div>
+
+      {/* Sidebar Mobile */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+              onClick={() => setSidebarOpen(false)}
+            />
+            <motion.div
+              initial={{ x: -320 }}
+              animate={{ x: 0 }}
+              exit={{ x: -320 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed inset-y-0 left-0 w-64 z-50 lg:hidden"
+            >
+              <Sidebar onClose={() => setSidebarOpen(false)} />
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
       
       <main className="flex-1 lg:ml-64">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -164,14 +192,22 @@ export default function ServicoCompleto() {
             animate={{ opacity: 1, y: 0 }}
             className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8"
           >
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-amber-100 rounded-lg">
-                  <Star className="w-6 h-6 text-amber-600" />
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="lg:hidden p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                <Menu className="w-6 h-6 text-slate-600" />
+              </button>
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2 bg-amber-100 rounded-lg">
+                    <Star className="w-6 h-6 text-amber-600" />
+                  </div>
+                  <h1 className="text-3xl font-bold text-slate-900">Serviço Completo</h1>
                 </div>
-                <h1 className="text-3xl font-bold text-slate-900">Serviço Completo</h1>
+                <p className="text-slate-500">Funcionário faz a lavagem/secagem (+ R$ 15,00)</p>
               </div>
-              <p className="text-slate-500">Funcionário faz a lavagem/secagem (+ R$ 15,00)</p>
             </div>
             <button
               onClick={() => {
