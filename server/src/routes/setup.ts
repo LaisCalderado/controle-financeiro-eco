@@ -114,4 +114,33 @@ router.post('/promote-admin', async (req, res) => {
     }
 });
 
+// Endpoint temporário para remover admin de usuário
+router.post('/demote-admin', async (req, res) => {
+    try {
+        const { email } = req.body;
+        
+        if (!email) {
+            return res.status(400).json({ error: 'Email é obrigatório' });
+        }
+
+        // Remove admin do usuário
+        const result = await pool.query(
+            'UPDATE usuarios SET role = $1 WHERE email = $2 RETURNING id, nome, email, role',
+            ['user', email]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Usuário não encontrado' });
+        }
+
+        res.json({ 
+            message: 'Usuário rebaixado para user com sucesso!',
+            user: result.rows[0]
+        });
+    } catch (error: any) {
+        console.error('Erro ao rebaixar usuário:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 export default router;
