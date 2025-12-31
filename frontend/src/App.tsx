@@ -6,6 +6,7 @@ import RegisterTransactionPage from "./pages/RegisterTransactionPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import RegisterUserPage from "./pages/RegisterUserPage";
 import PrivateRoute from "./components/routes/PrivateRoute";
+import AdminRoute from "./components/routes/AdminRoute";
 import ControleDiarioPage from "./pages/ControleDiarioPage";
 import ResumoMensalPage from "./pages/ResumoMensalPage";
 import FinanceiroPage from "./pages/FinanceiroPage";
@@ -13,6 +14,9 @@ import SelfService from "./pages/SelfService";
 import ServicoCompleto from "./pages/ServicoCompleto";
 import Despesas from "./pages/Despesas";
 import Relatorio from "./pages/Relatorio";
+import AdminUsersPage from "./pages/AdminUsersPage";
+import AdminDashboardPage from "./pages/AdminDashboardPage";
+import { AuthProvider } from "./context/AuthContext";
 
 
 function AppRoutes() {
@@ -31,6 +35,11 @@ function AppRoutes() {
         <Route path="/resumo-mensal" element={<PrivateRoute><ResumoMensalPage /></PrivateRoute>} />
         <Route path="/financeiro" element={<PrivateRoute><FinanceiroPage /></PrivateRoute>} />
         <Route path="/transactions/:userId" element={<PrivateRoute><RegisterTransactionPage /></PrivateRoute>} />
+        
+        {/* Rotas Admin */}
+        <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboardPage /></AdminRoute>} />
+        <Route path="/admin/users" element={<AdminRoute><AdminUsersPage /></AdminRoute>} />
+        
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </>
@@ -40,7 +49,9 @@ function AppRoutes() {
 function App() {
   return (
     <BrowserRouter>
-      <AppRoutes />
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
     </BrowserRouter>
   );
 }

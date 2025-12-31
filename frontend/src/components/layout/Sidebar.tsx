@@ -8,8 +8,12 @@ import {
   X, 
   Shirt,
   Sparkles,
-  Star
+  Star,
+  Shield,
+  Users,
+  BarChart3
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 interface SidebarProps {
   onClose?: () => void;
@@ -18,9 +22,10 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { logout, isAdmin } = useAuth();
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
+    logout();
     navigate('/');
   };
 
@@ -49,6 +54,19 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
       path: '/relatorio',
       icon: FileText,
       label: 'Relatórios'
+    }
+  ];
+
+  const adminMenuItems = [
+    {
+      path: '/admin/dashboard',
+      icon: BarChart3,
+      label: 'Dashboard Admin'
+    },
+    {
+      path: '/admin/users',
+      icon: Users,
+      label: 'Gerenciar Usuários'
     }
   ];
 
@@ -105,6 +123,42 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
             </button>
           );
         })}
+
+        {/* Admin Menu Section */}
+        {isAdmin && (
+          <>
+            <div className="pt-4 pb-2">
+              <div className="flex items-center gap-2 px-4 text-xs font-semibold text-slate-400 uppercase">
+                <Shield className="w-4 h-4" />
+                Administração
+              </div>
+            </div>
+            {adminMenuItems.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.path);
+              
+              return (
+                <button
+                  key={item.path}
+                  onClick={() => {
+                    navigate(item.path);
+                    onClose?.();
+                  }}
+                  className={`
+                    flex items-center gap-3 px-4 py-3 rounded-xl transition-all w-full text-left
+                    ${active 
+                      ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg shadow-purple-500/25' 
+                      : 'text-slate-600 hover:bg-slate-100'
+                    }
+                  `}
+                >
+                  <Icon className={`w-5 h-5 ${active ? 'text-white' : ''}`} />
+                  <span className="font-medium">{item.label}</span>
+                </button>
+              );
+            })}
+          </>
+        )}
       </nav>
 
       {/* Footer */}

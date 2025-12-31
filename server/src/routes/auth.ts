@@ -8,7 +8,7 @@ const router = express.Router();
 
 // Cadastro de usuário
 router.post('/register', async (req, res) => {
-    const { name, email, password } = req.body;
+    const { name, email, password, role = 'user' } = req.body;
 
     console.log('Requisição recebida:', req.body);
 
@@ -17,14 +17,19 @@ router.post('/register', async (req, res) => {
         return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
     }
 
+    // Valida o role
+    if (role !== 'user' && role !== 'admin') {
+        return res.status(400).json({ error: 'Role inválido' });
+    }
+
     try {
         // Criptografa a senha
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Insere no banco (campos do banco: nome, email, senha)
+        // Insere no banco (campos do banco: nome, email, senha, role)
         const result = await pool.query(
-            'INSERT INTO usuarios (nome, email, senha) VALUES ($1, $2, $3) RETURNING *',
-            [name, email, hashedPassword]
+            'INSERT INTO usuarios (nome, email, senha, role) VALUES ($1, $2, $3, $4) RETURNING *',
+            [name, email, hashedPassword, role]
         );
 
         const user = result.rows[0];
@@ -33,7 +38,8 @@ router.post('/register', async (req, res) => {
         res.status(201).json({
             id: user.id,
             name: user.nome, // pega do campo 'nome' do banco
-            email: user.email
+            email: user.email,
+            role: user.role
         });
     } catch (error: any) {
         console.error('Erro ao cadastrar usuário:', error);
@@ -72,7 +78,7 @@ router.post('/login', async (req, res) => {
         // Gera token JWT
         const jwt = await import('jsonwebtoken');
         const token = jwt.default.sign(
-            { id: user.id, email: user.email },
+            { id: user.id, email: user.email, role: user.role || 'user' },
             process.env.JWT_SECRET || 'chave_secreta',
             { expiresIn: '1h' }
         );
@@ -80,7 +86,7 @@ router.post('/login', async (req, res) => {
         res.status(200).json({
             message: 'Login realizado com sucesso',
             token,
-            user: { id: user.id, name: user.nome, email: user.email },
+            user: { id: user.id, name: user.nome, email: user.email, role: user.role || 'user' },
         });
     } catch (error) {
         console.error('Erro no login:', error);

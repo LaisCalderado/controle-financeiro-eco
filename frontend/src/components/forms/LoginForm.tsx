@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { LogIn, Mail, Lock, UserPlus, Sparkles } from "lucide-react";
 import { api } from "../../services/api";
+import { useAuth } from "../../context/AuthContext";
 
 export default function LoginForm() {
     const navigate = useNavigate();
+    const { login } = useAuth();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
@@ -22,9 +24,13 @@ export default function LoginForm() {
             if (!response.data.token) throw new Error("Erro ao fazer login");
 
             console.log("Token JWT: ", response.data.token);
+            console.log("User data: ", response.data.user);
 
             // Salva o token no localStorage
             localStorage.setItem("token", response.data.token);
+            
+            // Salva o usuário no contexto (incluindo role)
+            login(response.data.user);
 
             // Redireciona para o dashboard
             navigate('/dashboard');

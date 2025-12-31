@@ -5,6 +5,7 @@ import authRoutes from './routes/auth';
 import dashboardRoutes from './routes/dashboard';
 import transactionRouter from './routes/transactions';
 import setupRoutes from './routes/setup';
+import adminRoutes from './routes/admin';
 
 dotenv.config();
 
@@ -20,6 +21,7 @@ app.use('/api/auth', authRoutes);
 app.use('/dashboard', dashboardRoutes);
 app.use('/api', transactionRouter);
 app.use('/setup', setupRoutes);
+app.use('/api/admin', adminRoutes);
 
 const PORT = process.env.PORT || 3333;
 app.listen(PORT, () => {
