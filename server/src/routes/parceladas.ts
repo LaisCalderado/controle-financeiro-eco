@@ -73,8 +73,11 @@ router.post('/parceladas', verifyToken, async (req: any, res) => {
         const transacoesCriadas = [];
         
         for (let i = 0; i < total_parcelas; i++) {
-            const dataParcela = new Date(data_primeira_parcela);
-            dataParcela.setMonth(dataParcela.getMonth() + i);
+            // Garantir que a data seja tratada corretamente sem timezone
+            const dataBase = data_primeira_parcela.includes('T') ? data_primeira_parcela.split('T')[0] : data_primeira_parcela;
+            const [ano, mes, dia] = dataBase.split('-').map(Number);
+            const dataParcela = new Date(ano, mes - 1 + i, dia);
+            const dataFormatada = `${dataParcela.getFullYear()}-${String(dataParcela.getMonth() + 1).padStart(2, '0')}-${String(dataParcela.getDate()).padStart(2, '0')}`;
 
             const transacao = await pool.query(
                 `INSERT INTO transacoes 
@@ -87,7 +90,7 @@ router.post('/parceladas', verifyToken, async (req: any, res) => {
                     valor_parcela,
                     tipo,
                     categoria,
-                    dataParcela
+                    dataFormatada
                 ]
             );
 

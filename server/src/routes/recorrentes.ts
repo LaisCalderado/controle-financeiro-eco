@@ -81,11 +81,13 @@ router.post('/recorrentes', verifyToken, async (req: any, res) => {
 
         // Só cria se a data não for no futuro
         if (dataTransacao <= hoje) {
+            // Formatar data como YYYY-MM-DD para evitar problemas de timezone
+            const dataFormatada = `${anoAtual}-${String(mesAtual + 1).padStart(2, '0')}-${String(dia_vencimento).padStart(2, '0')}`;
             await pool.query(
                 `INSERT INTO transacoes 
                  (usuario_id, descricao, valor, tipo, categoria, data) 
                  VALUES ($1, $2, $3, $4, $5, $6)`,
-                [req.userId, descricao, valor, tipo, categoria, dataTransacao]
+                [req.userId, descricao, valor, tipo, categoria, dataFormatada]
             );
         }
 

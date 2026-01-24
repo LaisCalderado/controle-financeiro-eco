@@ -46,9 +46,12 @@ router.post('/transactions', verifyToken, async (req: any, res) => {
     }
 
     try {
+        // Garante que a data seja tratada como data local sem conversão de timezone
+        const dataLocal = data.includes('T') ? data.split('T')[0] : data;
+        
         const query = `INSERT INTO transacoes (usuario_id, data, valor, tipo, tipo_servico, categoria, descricao) 
                        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *;`;
-        const values = [req.userId, data, valor, tipo, tipo_servico || null, categoria || null, descricao || null];
+        const values = [req.userId, dataLocal, valor, tipo, tipo_servico || null, categoria || null, descricao || null];
         
         const result = await pool.query(query, values);
         res.status(201).json(result.rows[0]);
@@ -64,12 +67,15 @@ router.put('/transactions/:id', verifyToken, async (req: any, res) => {
     const { data, valor, tipo, categoria, descricao, tipo_servico } = req.body;
 
     try {
+        // Garante que a data seja tratada como data local sem conversão de timezone
+        const dataLocal = data.includes('T') ? data.split('T')[0] : data;
+        
         const result = await pool.query(
             `UPDATE transacoes 
              SET data = $1, valor = $2, tipo = $3, tipo_servico = $4, categoria = $5, descricao = $6
              WHERE id = $7 AND usuario_id = $8
              RETURNING *`,
-            [data, valor, tipo, tipo_servico || null, categoria, descricao, id, req.userId]
+            [dataLocal, valor, tipo, tipo_servico || null, categoria, descricao, id, req.userId]
         );
 
         if (result.rows.length === 0) {
