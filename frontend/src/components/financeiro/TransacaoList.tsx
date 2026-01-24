@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isToday, isYesterday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Pencil, Trash2, TrendingUp, TrendingDown } from 'lucide-react';
+import { Pencil, Trash2, TrendingUp, TrendingDown, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const categoriaStyles: Record<string, { label: string; color: string }> = {
@@ -23,6 +23,7 @@ interface Transacao {
   valor: number;
   data: string;
   categoria: string;
+  numero?: number;
 }
 
 interface TransacaoListProps {
@@ -35,6 +36,50 @@ interface TransacaoListProps {
 
 export default function TransacaoList({ transacoes, tipo, onEdit, onDelete, isLoading }: TransacaoListProps) {
   const [deleteId, setDeleteId] = useState<number | null>(null);
+
+  // Adicionar numeração automática por categoria e mês
+  const transacoesComNumero = React.useMemo(() => {
+    const contadores: Record<string, number> = {}; // chave: "categoria-mes-ano"
+    
+    // Ordenar por data crescente para numeração sequencial correta
+    const transacoesOrdenadas = [...transacoes].sort((a, b) => 
+      new Date(a.data).getTime() - new Date(b.data).getTime()
+    );
+    
+    const resultado = transacoesOrdenadas.map((transacao) => {
+      const data = parseISO(transacao.data);
+      const mesAno = format(data, 'MM-yyyy');
+      const chave = `${transacao.categoria}-${mesAno}`;
+      
+      if (!contadores[chave]) {
+        contadores[chave] = 0;
+      }
+      contadores[chave]++;
+      
+      return {
+        ...transacao,
+        numero: contadores[chave]
+      };
+    });
+    
+    // Reverter ordem para exibir mais recentes primeiro (Hoje, Ontem, ...)
+    return resultado.reverse();
+  }, [transacoes]);
+
+  const formatarData = (dataString: string) => {
+    const data = parseISO(dataString);
+    
+    if (isToday(data)) {
+      return 'Hoje';
+    }
+    
+    if (isYesterday(data)) {
+      return 'Ontem';
+    }
+    
+    // Formato: "Sexta, 03 Jan"
+    return format(data, "EEEE, dd MMM", { locale: ptBR });
+  };
 
   if (isLoading) {
     return (
@@ -73,7 +118,7 @@ export default function TransacaoList({ transacoes, tipo, onEdit, onDelete, isLo
     <>
       <div className="space-y-3">
         <AnimatePresence>
-          {transacoes.map((transacao, index) => (
+          {transacoesComNumero.map((transacao, index) => (
             <motion.div
               key={transacao.id}
               initial={{ opacity: 0, y: 10 }}
@@ -82,9 +127,9 @@ export default function TransacaoList({ transacoes, tipo, onEdit, onDelete, isLo
               transition={{ delay: index * 0.05 }}
               className="bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md transition-all group"
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4 flex-1 min-w-0">
-                  <div className={`p-2 rounded-lg ${tipo === 'receita' ? 'bg-emerald-100' : 'bg-rose-100'}`}>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-3 flex-1 min-w-0">
+                  <div className={`p-2 rounded-lg ${tipo === 'receita' ? 'bg-emerald-100' : 'bg-rose-100'} flex-shrink-0`}>
                     {tipo === 'receita' ? (
                       <TrendingUp className="w-5 h-5 text-emerald-600" />
                     ) : (
@@ -92,12 +137,15 @@ export default function TransacaoList({ transacoes, tipo, onEdit, onDelete, isLo
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-slate-900 truncate">{transacao.descricao}</p>
-                    <div className="flex items-center gap-2 mt-1 flex-wrap">
-                      <span className="text-sm text-slate-500">
-                        {format(parseISO(transacao.data), "dd/MM/yyyy", { locale: ptBR })}
-                      </span>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    <p className="font-semibold text-base text-slate-900 mb-1">
+                      {transacao.descricao} <span className="text-slate-500">#{transacao.numero}</span>
+                    </p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center gap-1.5 text-sm font-medium text-slate-600 bg-slate-50 px-2.5 py-1 rounded-md">
+                        <Calendar className="w-3.5 h-3.5" />
+                        <span>{formatarData(transacao.data)}</span>
+                      </div>
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium ${
                         categoriaStyles[transacao.categoria]?.color || 'bg-gray-100 text-gray-700'
                       }`}>
                         {categoriaStyles[transacao.categoria]?.label || transacao.categoria}
