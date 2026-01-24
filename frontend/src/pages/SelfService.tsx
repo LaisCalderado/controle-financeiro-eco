@@ -88,9 +88,10 @@ export default function SelfService() {
 
       setShowForm(false);
       setEditingReceita(null);
-      fetchReceitas();
-    } catch (error) {
+      await fetchReceitas();
+    } catch (error: any) {
       console.error('Erro ao salvar receita self-service:', error);
+      alert(`Erro ao salvar receita: ${error.response?.data?.error || error.message}`);
     } finally {
       setIsSaving(false);
     }

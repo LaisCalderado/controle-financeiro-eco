@@ -83,9 +83,50 @@ export default function Receitas() {
 
       setShowForm(false);
       setEditingReceita(null);
-      fetchReceitas();
-    } catch (error) {
+      await fetchReceitas();
+    } catch (error: any) {
       console.error('Erro ao salvar receita:', error);
+      alert(`Erro ao salvar receita: ${error.response?.data?.error || error.message}`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSubmitRecorrente = async (data: any) => {
+    try {
+      setIsSaving(true);
+      const token = localStorage.getItem('token');
+      
+      await api.post('/api/recorrentes', data, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      setShowForm(false);
+      fetchReceitas(); // Atualiza a lista
+      alert('Receita fixa cadastrada com sucesso!');
+    } catch (error) {
+      console.error('Erro ao salvar receita recorrente:', error);
+      alert('Erro ao salvar receita fixa');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSubmitParcelada = async (data: any) => {
+    try {
+      setIsSaving(true);
+      const token = localStorage.getItem('token');
+      
+      await api.post('/api/parceladas', data, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      setShowForm(false);
+      fetchReceitas();
+      alert('Receita parcelada cadastrada com sucesso!');
+    } catch (error) {
+      console.error('Erro ao salvar receita parcelada:', error);
+      alert('Erro ao salvar receita parcelada');
     } finally {
       setIsSaving(false);
     }
@@ -195,6 +236,8 @@ export default function Receitas() {
                   tipo="receita"
                   transacao={editingReceita}
                   onSubmit={handleSubmit}
+                  onSubmitRecorrente={handleSubmitRecorrente}
+                  onSubmitParcelada={handleSubmitParcelada}
                   onCancel={() => {
                     setShowForm(false);
                     setEditingReceita(null);
