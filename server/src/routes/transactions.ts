@@ -61,6 +61,19 @@ router.post('/transactions', verifyToken, async (req: any, res) => {
     }
 });
 
+// Rota temporária para limpar todas as transações (USAR COM CUIDADO!)
+// DEVE vir ANTES da rota /:id para não ser interpretada como um ID
+router.delete('/transactions/clear-all', verifyToken, async (req: any, res) => {
+    try {
+        await pool.query('DELETE FROM transacoes');
+        await pool.query('ALTER SEQUENCE transacoes_id_seq RESTART WITH 1');
+        res.json({ message: 'Todas as transações foram excluídas' });
+    } catch (error) {
+        console.error('Erro ao limpar transações:', error);
+        res.status(500).json({ error: 'Erro ao limpar transações' });
+    }
+});
+
 // Atualizar transação
 router.put('/transactions/:id', verifyToken, async (req: any, res) => {
     const { id } = req.params;
@@ -107,18 +120,6 @@ router.delete('/transactions/:id', verifyToken, async (req: any, res) => {
     } catch (error) {
         console.error('Erro ao excluir transação:', error);
         res.status(500).json({ error: 'Erro ao excluir transação' });
-    }
-});
-
-// Rota temporária para limpar todas as transações (USAR COM CUIDADO!)
-router.delete('/transactions/clear-all', verifyToken, async (req: any, res) => {
-    try {
-        await pool.query('DELETE FROM transacoes');
-        await pool.query('ALTER SEQUENCE transacoes_id_seq RESTART WITH 1');
-        res.json({ message: 'Todas as transações foram excluídas' });
-    } catch (error) {
-        console.error('Erro ao limpar transações:', error);
-        res.status(500).json({ error: 'Erro ao limpar transações' });
     }
 });
 
