@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CalendarIcon, Save, X } from 'lucide-react';
+import { CalendarIcon, Save, X, Repeat, CreditCard } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const categoriasReceita = [
@@ -27,24 +27,51 @@ interface TransacaoFormProps {
   onSubmit: (data: any) => void;
   onCancel: () => void;
   isLoading?: boolean;
+  onSubmitRecorrente?: (data: any) => void;
+  onSubmitParcelada?: (data: any) => void;
 }
 
-export default function TransacaoForm({ tipo, transacao, onSubmit, onCancel, isLoading }: TransacaoFormProps) {
+export default function TransacaoForm({ tipo, transacao, onSubmit, onCancel, isLoading, onSubmitRecorrente, onSubmitParcelada }: TransacaoFormProps) {
+  const [tipoTransacao, setTipoTransacao] = useState<'normal' | 'recorrente' | 'parcelada'>('normal');
   const [formData, setFormData] = useState({
     data: transacao?.data ? transacao.data.split('T')[0] : format(new Date(), 'yyyy-MM-dd'),
     valor: transacao?.valor || '',
     descricao: transacao?.descricao || '',
-    categoria: transacao?.categoria || ''
+    categoria: transacao?.categoria || '',
+    dia_vencimento: 1,
+    total_parcelas: 2
   });
 
   const categorias = tipo === 'receita' ? categoriasReceita : categoriasDespesa;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({
-      ...formData,
-      valor: parseFloat(formData.valor.toString())
-    });
+    
+    const baseData = {
+      descricao: formData.descricao,
+      valor: parseFloat(formData.valor.toString()),
+      tipo,
+      categoria: formData.categoria
+    };
+
+    if (tipoTransacao === 'recorrente' && onSubmitRecorrente) {
+      onSubmitRecorrente({
+        ...baseData,
+        dia_vencimento: formData.dia_vencimento
+      });
+    } else if (tipoTransacao === 'parcelada' && onSubmitParcelada) {
+      onSubmitParcelada({
+        ...baseData,
+        valor_total: baseData.valor,
+        total_parcelas: formData.total_parcelas,
+        data_primeira_parcela: formData.data
+      });
+    } else {
+      onSubmit({
+        ...formData,
+        valor: parseFloat(formData.valor.toString())
+      });
+    }
   };
 
   return (
@@ -64,27 +91,91 @@ export default function TransacaoForm({ tipo, transacao, onSubmit, onCancel, isL
         </button>
       </div>
 
+      {/* Seletor de tipo de transação */}
+      {!transacao && (
+        <div className="flex gap-2 mb-4">
+          <button
+            type="button"
+            onClick={() => setTipoTransacao('normal')}
+            className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              tipoTransacao === 'normal'
+                ? 'bg-blue-600 text-white'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            Normal
+          </button>
+          {onSubmitRecorrente && (
+            <button
+              type="button"
+              onClick={() => setTipoTransacao('recorrente')}
+              className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1 ${
+                tipoTransacao === 'recorrente'
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              <Repeat className="w-4 h-4" />
+              Fixa
+            </button>
+          )}
+          {onSubmitParcelada && (
+            <button
+              type="button"
+              onClick={() => setTipoTransacao('parcelada')}
+              className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1 ${
+                tipoTransacao === 'parcelada'
+                  ? 'bg-orange-600 text-white'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              <CreditCard className="w-4 h-4" />
+              Parcelada
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <label htmlFor="data" className="block text-sm font-medium text-slate-700">
-            Data
-          </label>
-          <div className="relative">
-            <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        {tipoTransacao === 'recorrente' ? (
+          <div className="space-y-2">
+            <label htmlFor="dia_vencimento" className="block text-sm font-medium text-slate-700">
+              Dia do Vencimento
+            </label>
             <input
-              id="data"
-              type="date"
-              value={formData.data}
-              onChange={(e) => setFormData({ ...formData, data: e.target.value })}
-              className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              id="dia_vencimento"
+              type="number"
+              min="1"
+              max="31"
+              value={formData.dia_vencimento}
+              onChange={(e) => setFormData({ ...formData, dia_vencimento: parseInt(e.target.value) })}
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               required
             />
+            <p className="text-xs text-slate-500">Dia do mês em que a despesa se repete</p>
           </div>
-        </div>
+        ) : (
+          <div className="space-y-2">
+            <label htmlFor="data" className="block text-sm font-medium text-slate-700">
+              Data {tipoTransacao === 'parcelada' ? '(1ª Parcela)' : ''}
+            </label>
+            <div className="relative">
+              <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                id="data"
+                type="date"
+                value={formData.data}
+                onChange={(e) => setFormData({ ...formData, data: e.target.value })}
+                className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              />
+            </div>
+          </div>
+        )}
 
         <div className="space-y-2">
           <label htmlFor="valor" className="block text-sm font-medium text-slate-700">
-            Valor (R$)
+            Valor {tipoTransacao === 'parcelada' ? 'Total' : ''} (R$)
           </label>
           <input
             id="valor"
@@ -97,8 +188,31 @@ export default function TransacaoForm({ tipo, transacao, onSubmit, onCancel, isL
             required
             className="w-full px-4 py-2 text-lg border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
+          {tipoTransacao === 'parcelada' && formData.valor && (
+            <p className="text-xs text-slate-500">
+              {formData.total_parcelas}x de R$ {(parseFloat(formData.valor) / formData.total_parcelas).toFixed(2)}
+            </p>
+          )}
         </div>
       </div>
+
+      {tipoTransacao === 'parcelada' && (
+        <div className="space-y-2">
+          <label htmlFor="total_parcelas" className="block text-sm font-medium text-slate-700">
+            Número de Parcelas
+          </label>
+          <input
+            id="total_parcelas"
+            type="number"
+            min="2"
+            max="48"
+            value={formData.total_parcelas}
+            onChange={(e) => setFormData({ ...formData, total_parcelas: parseInt(e.target.value) })}
+            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            required
+          />
+        </div>
+      )}
 
       <div className="space-y-2">
         <label htmlFor="categoria" className="block text-sm font-medium text-slate-700">

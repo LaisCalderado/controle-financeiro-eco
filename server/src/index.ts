@@ -5,6 +5,8 @@ import authRoutes from './routes/auth';
 import dashboardRoutes from './routes/dashboard';
 import transactionRouter from './routes/transactions';
 import setupRoutes from './routes/setup';
+import recorrentesRoutes from './routes/recorrentes';
+import parceladasRoutes from './routes/parceladas';
 
 dotenv.config();
 
@@ -19,6 +21,8 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/dashboard', dashboardRoutes);
 app.use('/api', transactionRouter);
+app.use('/api', recorrentesRoutes);
+app.use('/api', parceladasRoutes);
 app.use('/setup', setupRoutes);
 
 const PORT = process.env.PORT || 3333;

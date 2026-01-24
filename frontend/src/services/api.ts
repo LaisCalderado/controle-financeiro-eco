@@ -1,14 +1,14 @@
 import axios from 'axios';
 
-const baseURL = process.env.REACT_APP_BACKEND_URL || 
-                process.env.REACT_APP_API_URL || 
-                (window.location.hostname === 'controle-financeiro-eco-frontend.onrender.com' 
-                  ? 'https://controle-financeiro-eco-back.onrender.com'
-                  : 'http://localhost:3333');
+// Força o uso do servidor local em desenvolvimento
+const isDevelopment = !process.env.NODE_ENV || process.env.NODE_ENV === 'development';
+const baseURL = isDevelopment 
+  ? 'http://localhost:3333'
+  : (process.env.REACT_APP_BACKEND_URL || 'https://controle-financeiro-eco-back.onrender.com');
 
 console.log('🔧 API Base URL:', baseURL);
-console.log('🔧 REACT_APP_BACKEND_URL:', process.env.REACT_APP_BACKEND_URL);
-console.log('🔧 REACT_APP_API_URL:', process.env.REACT_APP_API_URL);
+console.log('🔧 NODE_ENV:', process.env.NODE_ENV);
+console.log('🔧 isDevelopment:', isDevelopment);
 
 export const api = axios.create({
   baseURL,

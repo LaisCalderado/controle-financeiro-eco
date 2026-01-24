@@ -86,6 +86,47 @@ export default function Despesas() {
       fetchDespesas();
     } catch (error) {
       console.error('Erro ao salvar despesa:', error);
+      alert('Erro ao salvar despesa');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSubmitRecorrente = async (data: any) => {
+    try {
+      setIsSaving(true);
+      const token = localStorage.getItem('token');
+      
+      await api.post('/api/recorrentes', data, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      setShowForm(false);
+      fetchDespesas(); // Atualiza a lista
+      alert('Despesa fixa cadastrada com sucesso!');
+    } catch (error) {
+      console.error('Erro ao salvar despesa recorrente:', error);
+      alert('Erro ao salvar despesa fixa');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSubmitParcelada = async (data: any) => {
+    try {
+      setIsSaving(true);
+      const token = localStorage.getItem('token');
+      
+      await api.post('/api/parceladas', data, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      setShowForm(false);
+      fetchDespesas(); // Atualiza a lista pois as parcelas já foram criadas
+      alert('Despesa parcelada cadastrada com sucesso!');
+    } catch (error) {
+      console.error('Erro ao salvar despesa parcelada:', error);
+      alert('Erro ao salvar despesa parcelada');
     } finally {
       setIsSaving(false);
     }
@@ -195,6 +236,8 @@ export default function Despesas() {
                   tipo="despesa"
                   transacao={editingDespesa}
                   onSubmit={handleSubmit}
+                  onSubmitRecorrente={handleSubmitRecorrente}
+                  onSubmitParcelada={handleSubmitParcelada}
                   onCancel={() => {
                     setShowForm(false);
                     setEditingDespesa(null);
