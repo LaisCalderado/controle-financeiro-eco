@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { TransacaoRecorrente } from '../../services/recorrentes';
+import { Edit2, Trash2, Play, Pause } from 'lucide-react';
+import { TransacaoRecorrente, Vencimento } from '../../services/recorrentes';
 
 interface Props {
   recorrentes: TransacaoRecorrente[];
+  vencimentos: Vencimento[];
   loading: boolean;
   onEdit: (id: number) => void;
   onDelete: (id: number) => void;
@@ -13,7 +15,7 @@ interface RecorrentesAgrupadas {
   [categoria: string]: TransacaoRecorrente[];
 }
 
-const ListaRecorrentes: React.FC<Props> = ({ recorrentes, loading, onEdit, onDelete, onToggleAtiva }) => {
+const ListaRecorrentes: React.FC<Props> = ({ recorrentes, vencimentos, loading, onEdit, onDelete, onToggleAtiva }) => {
   const [categoriaExpandida, setCategoriaExpandida] = useState<{ [key: string]: boolean }>({});
   const [filtroCategoria, setFiltroCategoria] = useState<string>('todas');
   const [ordenacao, setOrdenacao] = useState<'vencimento' | 'valor' | 'nome'>('vencimento');
@@ -82,7 +84,23 @@ const ListaRecorrentes: React.FC<Props> = ({ recorrentes, loading, onEdit, onDel
   };
 
   const calcularTotalCategoria = (items: TransacaoRecorrente[]) => {
-    return items.reduce((sum, item) => sum + (item.ativa ? item.valor : 0), 0);
+    return items.reduce((sum, item) => {
+      const valor = item.ativa ? Number(item.valor) || 0 : 0;
+      return sum + valor;
+    }, 0);
+  };
+
+  const verificarPaga = (recorrenteId: number) => {
+    // Verifica se existe algum vencimento pago deste mês para esta recorrente
+    const mesAtual = new Date().getMonth();
+    const anoAtual = new Date().getFullYear();
+    
+    return vencimentos.some(v => {
+      if (v.id !== recorrenteId || !v.pago) return false;
+      
+      const dataVencimento = new Date(v.data_vencimento + 'T00:00:00');
+      return dataVencimento.getMonth() === mesAtual && dataVencimento.getFullYear() === anoAtual;
+    });
   };
 
   const categorias = Array.from(new Set(recorrentes.map(r => r.categoria || 'Outros')));
@@ -150,47 +168,57 @@ const ListaRecorrentes: React.FC<Props> = ({ recorrentes, loading, onEdit, onDel
 
             {isExpandida && (
               <div className="categoria-items">
-                {items.map(rec => (
-                  <div key={rec.id} className={`recorrente-item ${!rec.ativa ? 'inativa' : ''}`}>
-                    <div className="recorrente-principal">
-                      <div className="recorrente-info">
-                        <h4>{rec.descricao}</h4>
-                        <div className="recorrente-detalhes">
-                          <span className="detalhe">Dia {rec.dia_vencimento}</span>
-                          <span className="detalhe-separador">|</span>
-                          <span className="detalhe">{formatCurrency(rec.valor)}</span>
-                          <span className="detalhe-separador">|</span>
-                          <span className={`status-badge ${rec.ativa ? 'ativa' : 'inativa'}`}>
-                            {rec.ativa ? '✅ Ativa' : '⏸️ Pausada'}
-                          </span>
+                {items.map(rec => {
+                  const estaPaga = verificarPaga(rec.id);
+                  
+                  return (
+                    <div key={rec.id} className={`recorrente-item ${!rec.ativa ? 'inativa' : ''}`}>
+                      <div className="recorrente-principal">
+                        <div className="recorrente-info">
+                          <h4>{rec.descricao}</h4>
+                          <div className="recorrente-detalhes">
+                            <span className="detalhe">Dia {rec.dia_vencimento}</span>
+                            <span className="detalhe-separador">|</span>
+                            <span className="detalhe">{formatCurrency(rec.valor)}</span>
+                            <span className="detalhe-separador">|</span>
+                            <span className={`status-badge ${rec.ativa ? 'ativa' : 'inativa'}`}>
+                              {rec.ativa ? '✅ Ativa' : '⏸️ Pausada'}
+                            </span>
+                            {estaPaga && (
+                              <>
+                                <span className="detalhe-separador">|</span>
+                                <span className="status-badge badge-mes-pago">✓ Pago este mês</span>
+                              </>
+                            )}
+                          </div>
                         </div>
-                      </div>
                       <div className="recorrente-acoes">
                         <button 
                           className="btn-acao btn-editar"
                           onClick={() => onEdit(rec.id)}
                           title="Editar"
                         >
-                          ✏️
+                          <Edit2 className="w-4 h-4" />
                         </button>
                         <button 
                           className="btn-acao btn-toggle"
                           onClick={() => onToggleAtiva(rec.id, !rec.ativa)}
                           title={rec.ativa ? 'Pausar' : 'Ativar'}
                         >
-                          {rec.ativa ? '⏸️' : '▶️'}
+                          {rec.ativa ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                         </button>
                         <button 
                           className="btn-acao btn-deletar"
                           onClick={() => onDelete(rec.id)}
                           title="Excluir"
                         >
-                          🗑️
+                          <Trash2 className="w-4 h-4 text-rose-500" />
                         </button>
                       </div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
