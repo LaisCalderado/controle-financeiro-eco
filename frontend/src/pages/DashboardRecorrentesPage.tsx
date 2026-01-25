@@ -65,6 +65,9 @@ const DashboardRecorrentesPage: React.FC = () => {
   const handleEdit = (id: number) => {
     const recorrente = recorrentes.find(r => r.id === id);
     if (recorrente) {
+      // Buscar se já existe uma transação gerada para esta recorrente no mês atual
+      const vencimentoAtual = vencimentos.find(v => v.id === id);
+      
       // Redirecionar para /despesas com os dados da despesa fixa
       navigate('/despesas', { 
         state: { 
@@ -74,7 +77,8 @@ const DashboardRecorrentesPage: React.FC = () => {
             valor: recorrente.valor,
             categoria: recorrente.categoria,
             dia_vencimento: recorrente.dia_vencimento,
-            tipo: recorrente.tipo
+            tipo: recorrente.tipo,
+            transacao_id: vencimentoAtual?.transacao_id || null
           }
         } 
       });

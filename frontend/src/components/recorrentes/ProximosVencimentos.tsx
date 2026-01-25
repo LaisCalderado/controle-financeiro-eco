@@ -56,8 +56,15 @@ const ProximosVencimentos: React.FC<Props> = ({ vencimentos, loading, onMarcarPa
   const proximos = vencimentosPendentes.filter(v => v.status === 'normal');
 
   const handleCheckboxChange = (vencimento: Vencimento) => {
+    console.log('Checkbox clicado:', vencimento);
+    console.log('transacao_id:', vencimento.transacao_id);
+    console.log('pago atual:', vencimento.pago);
+    console.log('onMarcarPago existe?', !!onMarcarPago);
+    
     if (vencimento.transacao_id && onMarcarPago) {
       onMarcarPago(vencimento.transacao_id, !vencimento.pago);
+    } else {
+      console.log('Não executou onMarcarPago. transacao_id:', vencimento.transacao_id, 'onMarcarPago:', !!onMarcarPago);
     }
   };
 

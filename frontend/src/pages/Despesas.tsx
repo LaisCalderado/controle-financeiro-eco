@@ -47,7 +47,7 @@ export default function Despesas() {
       const dataVencimento = new Date(anoAtual, mesAtual, recorrente.dia_vencimento);
       
       setEditingDespesa({
-        id: 0, // ID temporário, será uma nova transação baseada na recorrente
+        id: recorrente.transacao_id || 0, // Usa o ID da transação existente ou 0 para criar nova
         tipo: 'despesa',
         descricao: recorrente.descricao,
         valor: recorrente.valor,
@@ -97,7 +97,8 @@ export default function Despesas() {
         tipo: 'despesa'
       };
 
-      if (editingDespesa) {
+      // Se tem editingDespesa e o id é válido (não é 0), atualiza. Senão, cria nova.
+      if (editingDespesa && editingDespesa.id !== 0) {
         await api.put(`/api/transactions/${editingDespesa.id}`, dataToSend, {
           headers: { Authorization: `Bearer ${token}` }
         });
