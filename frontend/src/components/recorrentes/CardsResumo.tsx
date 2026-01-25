@@ -4,9 +4,11 @@ import { Estatisticas } from '../../services/recorrentes';
 interface Props {
   stats: Estatisticas | null;
   loading: boolean;
+  vencimentosPagos?: number;
+  totalVencimentos?: number;
 }
 
-const CardsResumo: React.FC<Props> = ({ stats, loading }) => {
+const CardsResumo: React.FC<Props> = ({ stats, loading, vencimentosPagos = 0, totalVencimentos = 0 }) => {
   if (loading) {
     return (
       <div className="cards-resumo">
@@ -31,6 +33,10 @@ const CardsResumo: React.FC<Props> = ({ stats, loading }) => {
       currency: 'BRL'
     }).format(value);
   };
+
+  const percentualPago = totalVencimentos > 0 
+    ? Math.round((vencimentosPagos / totalVencimentos) * 100) 
+    : 0;
 
   return (
     <div className="cards-resumo">
@@ -63,6 +69,17 @@ const CardsResumo: React.FC<Props> = ({ stats, loading }) => {
           </p>
           <small className="card-subtitle">
             {stats.total_receitas - stats.total_despesas >= 0 ? 'Superávit' : 'Déficit'}
+          </small>
+        </div>
+      </div>
+
+      <div className="card-resumo card-pagamentos">
+        <div className="card-icon">✅</div>
+        <div className="card-content">
+          <h3>Pagamentos no Prazo</h3>
+          <p className="card-value card-value-percentual">{percentualPago}%</p>
+          <small className="card-subtitle">
+            {vencimentosPagos} de {totalVencimentos} contas pagas
           </small>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu } from 'lucide-react';
+import { Menu, RefreshCw, Plus, DollarSign } from 'lucide-react';
 import recorrentesService, { 
   TransacaoRecorrente, 
   Vencimento, 
@@ -16,6 +17,7 @@ import GraficoDistribuicao from '../components/recorrentes/GraficoDistribuicao';
 import '../styles/dashboard-recorrentes.css';
 
 const DashboardRecorrentesPage: React.FC = () => {
+  const navigate = useNavigate();
   const [recorrentes, setRecorrentes] = useState<TransacaoRecorrente[]>([]);
   const [vencimentos, setVencimentos] = useState<Vencimento[]>([]);
   const [stats, setStats] = useState<Estatisticas | null>(null);
@@ -57,9 +59,26 @@ const DashboardRecorrentesPage: React.FC = () => {
     }
   };
 
+  const vencimentosPagos = vencimentos.filter(v => v.pago).length;
+  const totalVencimentos = vencimentos.length;
+
   const handleEdit = (id: number) => {
-    // TODO: Implementar modal de edição
-    console.log('Editar:', id);
+    const recorrente = recorrentes.find(r => r.id === id);
+    if (recorrente) {
+      // Redirecionar para /despesas com os dados da despesa fixa
+      navigate('/despesas', { 
+        state: { 
+          editRecorrente: {
+            id: recorrente.id,
+            descricao: recorrente.descricao,
+            valor: recorrente.valor,
+            categoria: recorrente.categoria,
+            dia_vencimento: recorrente.dia_vencimento,
+            tipo: recorrente.tipo
+          }
+        } 
+      });
+    }
   };
 
   const handleDelete = async (id: number) => {
@@ -95,6 +114,15 @@ const DashboardRecorrentesPage: React.FC = () => {
       await carregarDados();
     } catch (err: any) {
       alert(err.response?.data?.error || 'Erro ao gerar transações');
+    }
+  };
+
+  const handleMarcarPago = async (transacaoId: number, pago: boolean) => {
+    try {
+      await recorrentesService.marcarComoPago(transacaoId, pago);
+      await carregarDados(); // Recarregar dados para atualizar o status
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Erro ao marcar como pago');
     }
   };
 
@@ -156,34 +184,49 @@ const DashboardRecorrentesPage: React.FC = () => {
                   <Menu className="w-6 h-6 text-slate-600" />
                 </button>
                 <div>
-                  <h1>💰 Dashboard de Despesas Fixas</h1>
+                  <h1 className="flex items-center gap-2">
+                    <DollarSign className="w-8 h-8 text-green-600" />
+                    Dashboard de Despesas Fixas
+                  </h1>
                   <p className="header-subtitle">Gerencie suas despesas e receitas recorrentes</p>
                 </div>
               </div>
             </div>
             <div className="header-acoes">
               <button onClick={handleGerarMes} className="btn-gerar-mes">
-                🔄 Gerar Transações do Mês
+                <RefreshCw className="w-4 h-4" />
+                Gerar Transações do Mês
               </button>
               <button className="btn-adicionar">
-                ➕ Nova Despesa Fixa
+                <Plus className="w-4 h-4" />
+                Nova Despesa Fixa
               </button>
             </div>
           </div>
 
           {/* Cards de Resumo */}
-          <CardsResumo stats={stats} loading={loading} />
+          <CardsResumo 
+            stats={stats} 
+            loading={loading}
+            vencimentosPagos={vencimentosPagos}
+            totalVencimentos={totalVencimentos}
+          />
 
           {/* Layout em Grid */}
           <div className="dashboard-grid">
             {/* Coluna Esquerda - Principal */}
             <div className="dashboard-main">
               {/* Próximos Vencimentos */}
-              <ProximosVencimentos vencimentos={vencimentos} loading={loading} />
+              <ProximosVencimentos 
+                vencimentos={vencimentos} 
+                loading={loading}
+                onMarcarPago={handleMarcarPago}
+              />
 
               {/* Lista Completa */}
               <ListaRecorrentes 
                 recorrentes={recorrentes}
+                vencimentos={vencimentos}
                 loading={loading}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
