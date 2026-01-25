@@ -296,32 +296,56 @@ router.get('/vencimentos', verifyToken, async (req: any, res) => {
 // Estatísticas gerais
 router.get('/stats', verifyToken, async (req: any, res) => {
     try {
+        // Buscar transações pagas deste mês para calcular totais reais
+        const hoje = new Date();
+        const mesAtual = hoje.getMonth();
+        const anoAtual = hoje.getFullYear();
+        const primeiroDiaMes = new Date(anoAtual, mesAtual, 1);
+        const ultimoDiaMes = new Date(anoAtual, mesAtual + 1, 0);
+
+        const transacoesPagas = await pool.query(
+            `SELECT 
+                SUM(CASE WHEN tipo = 'despesa' AND pago = true THEN valor ELSE 0 END) as total_despesas_pagas,
+                SUM(CASE WHEN tipo = 'receita' AND pago = true THEN valor ELSE 0 END) as total_receitas_pagas
+            FROM transacoes 
+            WHERE usuario_id = $1 
+            AND data >= $2 
+            AND data <= $3`,
+            [req.userId, primeiroDiaMes.toISOString().split('T')[0], ultimoDiaMes.toISOString().split('T')[0]]
+        );
+
         const result = await pool.query(
             `SELECT 
                 COUNT(*) as total_recorrentes,
                 COUNT(CASE WHEN ativa = true THEN 1 END) as ativas,
-                COUNT(CASE WHEN ativa = false THEN 1 END) as inativas,
-                SUM(CASE WHEN tipo = 'despesa' AND ativa = true THEN valor ELSE 0 END) as total_despesas,
-                SUM(CASE WHEN tipo = 'receita' AND ativa = true THEN valor ELSE 0 END) as total_receitas,
-                SUM(CASE WHEN ativa = true THEN valor ELSE 0 END) as total_mensal
+                COUNT(CASE WHEN ativa = false THEN 1 END) as inativas
             FROM transacoes_recorrentes 
             WHERE usuario_id = $1`,
             [req.userId]
         );
 
-        const stats = result.rows[0];
+        const stats = {
+            ...result.rows[0],
+            total_despesas: parseFloat(transacoesPagas.rows[0].total_despesas_pagas) || 0,
+            total_receitas: parseFloat(transacoesPagas.rows[0].total_receitas_pagas) || 0,
+            total_mensal: (parseFloat(transacoesPagas.rows[0].total_receitas_pagas) || 0) - (parseFloat(transacoesPagas.rows[0].total_despesas_pagas) || 0)
+        };
 
-        // Buscar estatísticas por categoria
+        // Buscar estatísticas por categoria (apenas transações pagas)
         const categorias = await pool.query(
             `SELECT 
                 categoria,
                 COUNT(*) as quantidade,
                 SUM(valor) as total
-            FROM transacoes_recorrentes 
-            WHERE usuario_id = $1 AND ativa = true
+            FROM transacoes 
+            WHERE usuario_id = $1 
+            AND tipo = 'despesa' 
+            AND pago = true
+            AND data >= $2 
+            AND data <= $3
             GROUP BY categoria
             ORDER BY total DESC`,
-            [req.userId]
+            [req.userId, primeiroDiaMes.toISOString().split('T')[0], ultimoDiaMes.toISOString().split('T')[0]]
         );
 
         res.json({
