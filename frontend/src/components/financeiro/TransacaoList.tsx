@@ -35,8 +35,6 @@ interface TransacaoListProps {
 }
 
 export default function TransacaoList({ transacoes, tipo, onEdit, onDelete, isLoading }: TransacaoListProps) {
-  const [deleteId, setDeleteId] = useState<number | null>(null);
-
   // Adicionar numeração automática por categoria e mês
   const transacoesComNumero = React.useMemo(() => {
     const contadores: Record<string, number> = {}; // chave: "categoria-mes-ano"
@@ -103,17 +101,6 @@ export default function TransacaoList({ transacoes, tipo, onEdit, onDelete, isLo
     );
   }
 
-  const handleDeleteClick = (id: number) => {
-    setDeleteId(id);
-  };
-
-  const confirmDelete = () => {
-    if (deleteId) {
-      onDelete(deleteId);
-      setDeleteId(null);
-    }
-  };
-
   return (
     <>
       <div className="space-y-3">
@@ -165,7 +152,7 @@ export default function TransacaoList({ transacoes, tipo, onEdit, onDelete, isLo
                       <Pencil className="w-4 h-4 text-slate-500" />
                     </button>
                     <button
-                      onClick={() => handleDeleteClick(transacao.id)}
+                      onClick={() => onDelete(transacao.id)}
                       className="h-8 w-8 flex items-center justify-center hover:bg-rose-50 rounded-lg transition-colors"
                     >
                       <Trash2 className="w-4 h-4 text-rose-500" />
@@ -177,36 +164,6 @@ export default function TransacaoList({ transacoes, tipo, onEdit, onDelete, isLo
           ))}
         </AnimatePresence>
       </div>
-
-      {/* Modal de confirmação de exclusão */}
-      {deleteId && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl"
-          >
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">Confirmar exclusão</h3>
-            <p className="text-slate-600 mb-6">
-              Tem certeza que deseja excluir esta {tipo}? Esta ação não pode ser desfeita.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setDeleteId(null)}
-                className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={confirmDelete}
-                className="flex-1 px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition-colors"
-              >
-                Excluir
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
     </>
   );
 }
