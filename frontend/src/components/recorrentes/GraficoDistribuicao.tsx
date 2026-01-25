@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import { PieChart } from 'lucide-react';
 import { Estatisticas } from '../../services/recorrentes';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
@@ -13,7 +14,10 @@ const GraficoDistribuicao: React.FC<Props> = ({ stats }) => {
   if (!stats || stats.por_categoria.length === 0) {
     return (
       <div className="grafico-container">
-        <h3>📊 Distribuição por Categoria</h3>
+        <h3 className="flex items-center gap-2">
+          <PieChart className="w-6 h-6 text-purple-600" />
+          Distribuição por Categoria
+        </h3>
         <p className="grafico-vazio">Nenhum dado disponível</p>
       </div>
     );
@@ -90,7 +94,10 @@ const GraficoDistribuicao: React.FC<Props> = ({ stats }) => {
 
   return (
     <div className="grafico-container">
-      <h3>📊 Distribuição por Categoria</h3>
+      <h3 className="flex items-center gap-2">
+        <PieChart className="w-6 h-6 text-purple-600" />
+        Distribuição por Categoria
+      </h3>
       <div className="grafico-pie">
         <Pie data={data} options={options} />
       </div>
