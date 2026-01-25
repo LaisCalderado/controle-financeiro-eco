@@ -104,6 +104,25 @@ router.put('/:id', verifyToken, async (req: any, res) => {
     const { descricao, valor, tipo, categoria, dia_vencimento, ativa } = req.body;
 
     try {
+        // Se apenas 'ativa' foi enviada, fazer atualização parcial
+        if (ativa !== undefined && !descricao && !valor && !tipo && !categoria && !dia_vencimento) {
+            const query = `
+                UPDATE transacoes_recorrentes 
+                SET ativa = $1
+                WHERE id = $2 AND usuario_id = $3
+                RETURNING *
+            `;
+
+            const result = await pool.query(query, [ativa, id, req.userId]);
+
+            if (result.rows.length === 0) {
+                return res.status(404).json({ error: 'Transação recorrente não encontrada' });
+            }
+
+            return res.json(result.rows[0]);
+        }
+
+        // Atualização completa
         const query = `
             UPDATE transacoes_recorrentes 
             SET descricao = $1, valor = $2, tipo = $3, categoria = $4, 
@@ -228,7 +247,7 @@ router.get('/vencimentos', verifyToken, async (req: any, res) => {
             [req.userId]
         );
 
-        const vencimentos = recorrentes.rows.map((rec: any) => {
+        const vencimentos = await Promise.all(recorrentes.rows.map(async (rec: any) => {
             let dataVencimento = new Date(anoAtual, mesAtual, rec.dia_vencimento);
             dataVencimento.setHours(0, 0, 0, 0); // Zerar as horas
             
@@ -241,13 +260,26 @@ router.get('/vencimentos', verifyToken, async (req: any, res) => {
             const diffTime = dataVencimento.getTime() - hoje.getTime();
             const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
+            // Buscar se existe uma transação para este mês e se foi paga
+            const mesFormatado = dataVencimento.toISOString().slice(0, 7);
+            const transacao = await pool.query(
+                `SELECT id, pago FROM transacoes 
+                 WHERE usuario_id = $1 
+                 AND descricao = $2 
+                 AND TO_CHAR(data, 'YYYY-MM') = $3
+                 LIMIT 1`,
+                [req.userId, rec.descricao, mesFormatado]
+            );
+
             return {
                 ...rec,
                 data_vencimento: dataVencimento.toISOString().split('T')[0],
                 dias_restantes: diffDays,
-                status: diffDays === 0 ? 'hoje' : diffDays < 0 ? 'atrasado' : diffDays <= 3 ? 'urgente' : 'normal'
+                status: diffDays === 0 ? 'hoje' : diffDays < 0 ? 'atrasado' : diffDays <= 3 ? 'urgente' : 'normal',
+                transacao_id: transacao.rows[0]?.id || null,
+                pago: transacao.rows[0]?.pago || false
             };
-        });
+        }));
 
         // Filtrar apenas os que vencem nos próximos X dias
         const vencimentosFiltrados = vencimentos.filter((v: any) => 
