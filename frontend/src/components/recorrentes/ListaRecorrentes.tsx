@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Edit2, Trash2, Play, Pause } from 'lucide-react';
+import { Edit2, Trash2, Play, Pause, List, Home, ShoppingCart, Car, Heart, BookOpen, Gamepad2, Lightbulb, Smartphone, Package } from 'lucide-react';
 import { TransacaoRecorrente, Vencimento } from '../../services/recorrentes';
 
 interface Props {
@@ -35,18 +35,18 @@ const ListaRecorrentes: React.FC<Props> = ({ recorrentes, vencimentos, loading, 
   };
 
   const getCategoriaIcon = (categoria: string) => {
-    const icons: { [key: string]: string } = {
-      'Moradia': '🏠',
-      'Alimentação': '🍽️',
-      'Transporte': '🚗',
-      'Saúde': '⚕️',
-      'Educação': '📚',
-      'Lazer': '🎮',
-      'Utilidades': '💡',
-      'Assinaturas': '📱',
-      'Outros': '📦'
+    const icons: { [key: string]: React.ReactElement } = {
+      'Moradia': <Home className="w-5 h-5" />,
+      'Alimentação': <ShoppingCart className="w-5 h-5" />,
+      'Transporte': <Car className="w-5 h-5" />,
+      'Saúde': <Heart className="w-5 h-5" />,
+      'Educação': <BookOpen className="w-5 h-5" />,
+      'Lazer': <Gamepad2 className="w-5 h-5" />,
+      'Utilidades': <Lightbulb className="w-5 h-5" />,
+      'Assinaturas': <Smartphone className="w-5 h-5" />,
+      'Outros': <Package className="w-5 h-5" />
     };
-    return icons[categoria] || '📦';
+    return icons[categoria] || <Package className="w-5 h-5" />;
   };
 
   // Agrupar por categoria
@@ -113,7 +113,10 @@ const ListaRecorrentes: React.FC<Props> = ({ recorrentes, vencimentos, loading, 
   return (
     <div className="lista-recorrentes">
       <div className="lista-header">
-        <h2>📋 Todas as Despesas Fixas</h2>
+        <h2 className="flex items-center gap-2">
+          <List className="w-6 h-6 text-blue-600" />
+          Todas as Despesas Fixas
+        </h2>
         <div className="lista-controles">
           <select 
             value={filtroCategoria} 
@@ -141,7 +144,6 @@ const ListaRecorrentes: React.FC<Props> = ({ recorrentes, vencimentos, loading, 
       {recorrentes.length === 0 && (
         <div className="lista-vazia">
           <p>Nenhuma despesa fixa cadastrada.</p>
-          <button className="btn-adicionar">+ Adicionar primeira despesa</button>
         </div>
       )}
 
