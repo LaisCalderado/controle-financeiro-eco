@@ -17,6 +17,8 @@ export interface Vencimento extends TransacaoRecorrente {
   data_vencimento: string;
   dias_restantes: number;
   status: 'hoje' | 'atrasado' | 'urgente' | 'normal';
+  transacao_id?: number;
+  pago?: boolean;
 }
 
 export interface Estatisticas {
@@ -103,6 +105,12 @@ const recorrentesService = {
   // Buscar insights
   insights: async (): Promise<Insight[]> => {
     const response = await api.get('/api/recorrentes/insights');
+    return response.data;
+  },
+
+  // Marcar transação como paga
+  marcarComoPago: async (transacaoId: number, pago: boolean): Promise<any> => {
+    const response = await api.put(`/api/transactions/${transacaoId}/marcar-pago`, { pago });
     return response.data;
   }
 };
