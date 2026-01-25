@@ -1,4 +1,5 @@
 import React from 'react';
+import { Calendar, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Vencimento } from '../../services/recorrentes';
 
 interface Props {
@@ -11,7 +12,10 @@ const ProximosVencimentos: React.FC<Props> = ({ vencimentos, loading, onMarcarPa
   if (loading) {
     return (
       <div className="proximos-vencimentos">
-        <h2>📅 Próximos Vencimentos</h2>
+        <h2 className="flex items-center gap-2">
+          <Calendar className="w-6 h-6 text-blue-600" />
+          Próximos Vencimentos
+        </h2>
         <div className="vencimentos-loading">Carregando...</div>
       </div>
     );
@@ -105,17 +109,24 @@ const ProximosVencimentos: React.FC<Props> = ({ vencimentos, loading, onMarcarPa
 
   return (
     <div className="proximos-vencimentos">
-      <h2>📅 Próximos Vencimentos</h2>
+      <h2 className="flex items-center gap-2">
+        <Calendar className="w-6 h-6 text-blue-600" />
+        Próximos Vencimentos
+      </h2>
 
       {vencimentosPendentes.length === 0 && (
         <div className="vencimentos-vazio">
-          <p>✅ Nenhum vencimento pendente nos próximos dias!</p>
+          <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-2" />
+          <p>Nenhum vencimento pendente nos próximos dias!</p>
         </div>
       )}
 
       {hoje.length > 0 && (
         <div className="vencimentos-secao">
-          <h3 className="secao-titulo urgente">⚠️ HOJE</h3>
+          <h3 className="secao-titulo urgente flex items-center gap-2">
+            <AlertCircle className="w-5 h-5" />
+            HOJE
+          </h3>
           {hoje.map(vencimento => renderVencimento(vencimento, false))}
         </div>
       )}
