@@ -29,10 +29,11 @@ interface TransacaoFormProps {
   isLoading?: boolean;
   onSubmitRecorrente?: (data: any) => void;
   onSubmitParcelada?: (data: any) => void;
+  initialTipoTransacao?: 'normal' | 'recorrente' | 'parcelada';
 }
 
-export default function TransacaoForm({ tipo, transacao, onSubmit, onCancel, isLoading, onSubmitRecorrente, onSubmitParcelada }: TransacaoFormProps) {
-  const [tipoTransacao, setTipoTransacao] = useState<'normal' | 'recorrente' | 'parcelada'>('normal');
+export default function TransacaoForm({ tipo, transacao, onSubmit, onCancel, isLoading, onSubmitRecorrente, onSubmitParcelada, initialTipoTransacao = 'normal' }: TransacaoFormProps) {
+  const [tipoTransacao, setTipoTransacao] = useState<'normal' | 'recorrente' | 'parcelada'>(initialTipoTransacao);
   const [formData, setFormData] = useState({
     data: transacao?.data ? transacao.data.split('T')[0] : format(new Date(), 'yyyy-MM-dd'),
     valor: transacao?.valor || '',
