@@ -32,6 +32,8 @@ export default function Despesas() {
     dataInicio: startOfMonth(new Date()),
     dataFim: endOfMonth(new Date())
   });
+  const [deleteModal, setDeleteModal] = useState<{ show: boolean; id: number | null; descricao: string }>({ show: false, id: null, descricao: '' });
+  const [initialFormType, setInitialFormType] = useState<'normal' | 'recorrente' | 'parcelada'>('normal');
 
   useEffect(() => {
     fetchDespesas();
@@ -55,6 +57,14 @@ export default function Despesas() {
         categoria: recorrente.categoria
       });
       setShowForm(true);
+      
+      // Limpar o state para não reabrir ao voltar
+      window.history.replaceState({}, document.title);
+    } else if (state?.openRecorrenteForm) {
+      // Abrir formulário vazio para nova despesa fixa
+      setShowForm(true);
+      setEditingDespesa(null);
+      setInitialFormType('recorrente');
       
       // Limpar o state para não reabrir ao voltar
       window.history.replaceState({}, document.title);
@@ -164,16 +174,30 @@ export default function Despesas() {
     setShowForm(true);
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = (id: number) => {
+    const despesa = despesas.find(d => d.id === id);
+    if (despesa) {
+      setDeleteModal({ show: true, id, descricao: despesa.descricao });
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteModal.id) return;
+
     try {
       const token = localStorage.getItem('token');
-      await api.delete(`/api/transactions/${id}`, {
+      await api.delete(`/api/transactions/${deleteModal.id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      setDeleteModal({ show: false, id: null, descricao: '' });
       fetchDespesas();
     } catch (error) {
       console.error('Erro ao excluir despesa:', error);
     }
+  };
+
+  const cancelDelete = () => {
+    setDeleteModal({ show: false, id: null, descricao: '' });
   };
 
   return (
@@ -268,8 +292,10 @@ export default function Despesas() {
                   onCancel={() => {
                     setShowForm(false);
                     setEditingDespesa(null);
+                    setInitialFormType('normal');
                   }}
                   isLoading={isSaving}
+                  initialTipoTransacao={initialFormType}
                 />
               </motion.div>
             )}
@@ -284,6 +310,57 @@ export default function Despesas() {
           />
         </div>
       </main>
+
+      {/* Modal de Confirmação de Exclusão */}
+      <AnimatePresence>
+        {deleteModal.show && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={cancelDelete}
+              className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6"
+              >
+                <div className="text-center">
+                  <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                    <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    Confirmar Exclusão
+                  </h3>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Tem certeza que deseja excluir a despesa <strong>"{deleteModal.descricao}"</strong>? Esta ação não pode ser desfeita.
+                  </p>
+                  <div className="flex gap-3 justify-center">
+                    <button
+                      onClick={cancelDelete}
+                      className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={confirmDelete}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                    >
+                      Excluir
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
