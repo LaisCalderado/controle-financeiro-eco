@@ -1,4 +1,5 @@
 ﻿import React, { useState, useEffect, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { api } from '../services/api';
 import { startOfMonth, endOfMonth, parseISO, isWithinInterval } from 'date-fns';
 import { Plus, TrendingDown, Menu } from 'lucide-react';
@@ -19,6 +20,7 @@ interface Transacao {
 }
 
 export default function Despesas() {
+  const location = useLocation();
   const [despesas, setDespesas] = useState<Transacao[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -33,7 +35,31 @@ export default function Despesas() {
 
   useEffect(() => {
     fetchDespesas();
-  }, []);
+
+    // Verificar se veio dados de uma despesa fixa para editar
+    const state = location.state as any;
+    if (state?.editRecorrente) {
+      const recorrente = state.editRecorrente;
+      // Abrir formulário com dados pré-preenchidos da despesa fixa
+      const hoje = new Date();
+      const mesAtual = hoje.getMonth();
+      const anoAtual = hoje.getFullYear();
+      const dataVencimento = new Date(anoAtual, mesAtual, recorrente.dia_vencimento);
+      
+      setEditingDespesa({
+        id: 0, // ID temporário, será uma nova transação baseada na recorrente
+        tipo: 'despesa',
+        descricao: recorrente.descricao,
+        valor: recorrente.valor,
+        data: dataVencimento.toISOString().split('T')[0],
+        categoria: recorrente.categoria
+      });
+      setShowForm(true);
+      
+      // Limpar o state para não reabrir ao voltar
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
 
   const fetchDespesas = async () => {
     try {
