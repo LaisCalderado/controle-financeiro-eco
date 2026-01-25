@@ -13,6 +13,7 @@ import SelfService from "./pages/SelfService";
 import ServicoCompleto from "./pages/ServicoCompleto";
 import Despesas from "./pages/Despesas";
 import Relatorio from "./pages/Relatorio";
+import DashboardRecorrentesPage from "./pages/DashboardRecorrentesPage";
 
 
 function AppRoutes() {
@@ -23,6 +24,7 @@ function AppRoutes() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/register-user" element={<RegisterUserPage />} />
         <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
+        <Route path="/dashboard-recorrentes" element={<PrivateRoute><DashboardRecorrentesPage /></PrivateRoute>} />
         <Route path="/selfservice" element={<PrivateRoute><SelfService /></PrivateRoute>} />
         <Route path="/servico-completo" element={<PrivateRoute><ServicoCompleto /></PrivateRoute>} />
         <Route path="/despesas" element={<PrivateRoute><Despesas /></PrivateRoute>} />

@@ -8,7 +8,8 @@ import {
   X, 
   Shirt,
   Sparkles,
-  Star
+  Star,
+  Repeat
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -44,6 +45,11 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
       path: '/despesas',
       icon: TrendingDown,
       label: 'Despesas'
+    },
+    {
+      path: '/dashboard-recorrentes',
+      icon: Repeat,
+      label: 'Despesas Fixas'
     },
     {
       path: '/relatorio',

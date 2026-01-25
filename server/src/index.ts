@@ -21,8 +21,8 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/dashboard', dashboardRoutes);
 app.use('/api', transactionRouter);
-app.use('/api', recorrentesRoutes);
-app.use('/api', parceladasRoutes);
+app.use('/api/recorrentes', recorrentesRoutes);
+app.use('/api/parceladas', parceladasRoutes);
 app.use('/setup', setupRoutes);
 
 const PORT = process.env.PORT || 3333;

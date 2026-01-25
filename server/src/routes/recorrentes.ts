@@ -22,7 +22,7 @@ const verifyToken = (req: any, res: any, next: any) => {
 };
 
 // Listar todas as transações recorrentes do usuário
-router.get('/recorrentes', verifyToken, async (req: any, res) => {
+router.get('/', verifyToken, async (req: any, res) => {
     try {
         const result = await pool.query(
             'SELECT * FROM transacoes_recorrentes WHERE usuario_id = $1 ORDER BY dia_vencimento ASC',
@@ -36,7 +36,7 @@ router.get('/recorrentes', verifyToken, async (req: any, res) => {
 });
 
 // Criar nova transação recorrente
-router.post('/recorrentes', verifyToken, async (req: any, res) => {
+router.post('/', verifyToken, async (req: any, res) => {
     const { descricao, valor, tipo, categoria, dia_vencimento } = req.body;
 
     if (!descricao || !valor || !tipo || !dia_vencimento) {
@@ -99,7 +99,7 @@ router.post('/recorrentes', verifyToken, async (req: any, res) => {
 });
 
 // Atualizar transação recorrente
-router.put('/recorrentes/:id', verifyToken, async (req: any, res) => {
+router.put('/:id', verifyToken, async (req: any, res) => {
     const { id } = req.params;
     const { descricao, valor, tipo, categoria, dia_vencimento, ativa } = req.body;
 
@@ -135,7 +135,7 @@ router.put('/recorrentes/:id', verifyToken, async (req: any, res) => {
 });
 
 // Deletar transação recorrente
-router.delete('/recorrentes/:id', verifyToken, async (req: any, res) => {
+router.delete('/:id', verifyToken, async (req: any, res) => {
     const { id } = req.params;
 
     try {
@@ -156,7 +156,7 @@ router.delete('/recorrentes/:id', verifyToken, async (req: any, res) => {
 });
 
 // Gerar transações do mês baseadas nas recorrentes
-router.post('/recorrentes/gerar-mes', verifyToken, async (req: any, res) => {
+router.post('/gerar-mes', verifyToken, async (req: any, res) => {
     try {
         // Buscar todas as transações recorrentes ativas do usuário
         const recorrentes = await pool.query(
@@ -210,6 +210,217 @@ router.post('/recorrentes/gerar-mes', verifyToken, async (req: any, res) => {
     } catch (error) {
         console.error('Erro ao gerar transações do mês:', error);
         res.status(500).json({ error: 'Erro ao gerar transações do mês' });
+    }
+});
+
+// Buscar próximos vencimentos
+router.get('/vencimentos', verifyToken, async (req: any, res) => {
+    try {
+        const dias = parseInt(req.query.dias as string) || 7;
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0); // Zerar as horas para comparar apenas a data
+        const diaAtual = hoje.getDate();
+        const mesAtual = hoje.getMonth();
+        const anoAtual = hoje.getFullYear();
+
+        const recorrentes = await pool.query(
+            'SELECT * FROM transacoes_recorrentes WHERE usuario_id = $1 AND ativa = true ORDER BY dia_vencimento ASC',
+            [req.userId]
+        );
+
+        const vencimentos = recorrentes.rows.map((rec: any) => {
+            let dataVencimento = new Date(anoAtual, mesAtual, rec.dia_vencimento);
+            dataVencimento.setHours(0, 0, 0, 0); // Zerar as horas
+            
+            // Se já passou, considerar próximo mês
+            if (dataVencimento < hoje) {
+                dataVencimento = new Date(anoAtual, mesAtual + 1, rec.dia_vencimento);
+                dataVencimento.setHours(0, 0, 0, 0);
+            }
+
+            const diffTime = dataVencimento.getTime() - hoje.getTime();
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+            return {
+                ...rec,
+                data_vencimento: dataVencimento.toISOString().split('T')[0],
+                dias_restantes: diffDays,
+                status: diffDays === 0 ? 'hoje' : diffDays < 0 ? 'atrasado' : diffDays <= 3 ? 'urgente' : 'normal'
+            };
+        });
+
+        // Filtrar apenas os que vencem nos próximos X dias
+        const vencimentosFiltrados = vencimentos.filter((v: any) => 
+            v.dias_restantes >= 0 && v.dias_restantes <= dias
+        );
+
+        res.json(vencimentosFiltrados);
+    } catch (error) {
+        console.error('Erro ao buscar vencimentos:', error);
+        res.status(500).json({ error: 'Erro ao buscar vencimentos' });
+    }
+});
+
+// Estatísticas gerais
+router.get('/stats', verifyToken, async (req: any, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT 
+                COUNT(*) as total_recorrentes,
+                COUNT(CASE WHEN ativa = true THEN 1 END) as ativas,
+                COUNT(CASE WHEN ativa = false THEN 1 END) as inativas,
+                SUM(CASE WHEN tipo = 'despesa' AND ativa = true THEN valor ELSE 0 END) as total_despesas,
+                SUM(CASE WHEN tipo = 'receita' AND ativa = true THEN valor ELSE 0 END) as total_receitas,
+                SUM(CASE WHEN ativa = true THEN valor ELSE 0 END) as total_mensal
+            FROM transacoes_recorrentes 
+            WHERE usuario_id = $1`,
+            [req.userId]
+        );
+
+        const stats = result.rows[0];
+
+        // Buscar estatísticas por categoria
+        const categorias = await pool.query(
+            `SELECT 
+                categoria,
+                COUNT(*) as quantidade,
+                SUM(valor) as total
+            FROM transacoes_recorrentes 
+            WHERE usuario_id = $1 AND ativa = true
+            GROUP BY categoria
+            ORDER BY total DESC`,
+            [req.userId]
+        );
+
+        res.json({
+            ...stats,
+            por_categoria: categorias.rows
+        });
+    } catch (error) {
+        console.error('Erro ao buscar estatísticas:', error);
+        res.status(500).json({ error: 'Erro ao buscar estatísticas' });
+    }
+});
+
+// Comparação mensal
+router.get('/comparacao', verifyToken, async (req: any, res) => {
+    try {
+        const meses = parseInt(req.query.meses as string) || 6;
+        const hoje = new Date();
+        
+        const comparacao = [];
+        for (let i = meses - 1; i >= 0; i--) {
+            const mes = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+            const mesFormatado = mes.toISOString().slice(0, 7);
+            
+            // Buscar transações recorrentes que foram geradas naquele mês
+            const resultado = await pool.query(
+                `SELECT 
+                    categoria,
+                    SUM(valor) as total
+                FROM transacoes 
+                WHERE usuario_id = $1 
+                AND TO_CHAR(data, 'YYYY-MM') = $2
+                AND descricao IN (SELECT descricao FROM transacoes_recorrentes WHERE usuario_id = $1)
+                GROUP BY categoria`,
+                [req.userId, mesFormatado]
+            );
+
+            const totalMes = await pool.query(
+                `SELECT SUM(valor) as total
+                FROM transacoes 
+                WHERE usuario_id = $1 
+                AND TO_CHAR(data, 'YYYY-MM') = $2
+                AND descricao IN (SELECT descricao FROM transacoes_recorrentes WHERE usuario_id = $1)`,
+                [req.userId, mesFormatado]
+            );
+
+            comparacao.push({
+                mes: mesFormatado,
+                categorias: resultado.rows,
+                total: totalMes.rows[0]?.total || 0
+            });
+        }
+
+        res.json(comparacao);
+    } catch (error) {
+        console.error('Erro ao buscar comparação:', error);
+        res.status(500).json({ error: 'Erro ao buscar comparação' });
+    }
+});
+
+// Insights automáticos
+router.get('/insights', verifyToken, async (req: any, res) => {
+    try {
+        const insights = [];
+        const hoje = new Date();
+        const mesAtual = hoje.toISOString().slice(0, 7);
+        const mesAnterior = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1).toISOString().slice(0, 7);
+
+        // Comparar valores do mês atual vs anterior
+        const recorrentes = await pool.query(
+            'SELECT * FROM transacoes_recorrentes WHERE usuario_id = $1 AND ativa = true',
+            [req.userId]
+        );
+
+        for (const rec of recorrentes.rows) {
+            const valorAtual = await pool.query(
+                `SELECT valor FROM transacoes 
+                WHERE usuario_id = $1 
+                AND descricao = $2 
+                AND TO_CHAR(data, 'YYYY-MM') = $3
+                LIMIT 1`,
+                [req.userId, rec.descricao, mesAtual]
+            );
+
+            const valorAnterior = await pool.query(
+                `SELECT valor FROM transacoes 
+                WHERE usuario_id = $1 
+                AND descricao = $2 
+                AND TO_CHAR(data, 'YYYY-MM') = $3
+                LIMIT 1`,
+                [req.userId, rec.descricao, mesAnterior]
+            );
+
+            if (valorAtual.rows.length > 0 && valorAnterior.rows.length > 0) {
+                const atual = parseFloat(valorAtual.rows[0].valor);
+                const anterior = parseFloat(valorAnterior.rows[0].valor);
+                const variacao = ((atual - anterior) / anterior) * 100;
+
+                if (Math.abs(variacao) >= 10) {
+                    insights.push({
+                        tipo: variacao > 0 ? 'aumento' : 'reducao',
+                        descricao: rec.descricao,
+                        valor_atual: atual,
+                        valor_anterior: anterior,
+                        variacao: variacao.toFixed(2),
+                        mensagem: `${rec.descricao} ${variacao > 0 ? 'aumentou' : 'diminuiu'} ${Math.abs(variacao).toFixed(0)}% este mês`
+                    });
+                }
+            }
+        }
+
+        // Calcular % da renda (exemplo fixo, ajustar conforme necessário)
+        const totalDespesas = await pool.query(
+            `SELECT SUM(valor) as total
+            FROM transacoes_recorrentes 
+            WHERE usuario_id = $1 AND ativa = true AND tipo = 'despesa'`,
+            [req.userId]
+        );
+
+        const total = parseFloat(totalDespesas.rows[0]?.total || 0);
+        if (total > 0) {
+            insights.push({
+                tipo: 'comprometimento',
+                valor: total,
+                mensagem: `Suas despesas fixas totalizam R$ ${total.toFixed(2)}/mês`
+            });
+        }
+
+        res.json(insights);
+    } catch (error) {
+        console.error('Erro ao buscar insights:', error);
+        res.status(500).json({ error: 'Erro ao buscar insights' });
     }
 });
 
