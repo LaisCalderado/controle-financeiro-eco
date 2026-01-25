@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, RefreshCw, Plus, DollarSign } from 'lucide-react';
+import { Menu, RefreshCw, Plus, CalendarClock, Repeat, CircleDollarSign } from 'lucide-react';
 import recorrentesService, { 
   TransacaoRecorrente, 
   Vencimento, 
@@ -25,6 +25,8 @@ const DashboardRecorrentesPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [deleteModal, setDeleteModal] = useState<{ show: boolean; id: number | null; descricao: string }>({ show: false, id: null, descricao: '' });
+  const [gerarMesModal, setGerarMesModal] = useState(false);
 
   useEffect(() => {
     carregarDados();
@@ -85,17 +87,27 @@ const DashboardRecorrentesPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm('Tem certeza que deseja excluir esta despesa fixa?')) {
-      return;
+  const handleDelete = (id: number) => {
+    const recorrente = recorrentes.find(r => r.id === id);
+    if (recorrente) {
+      setDeleteModal({ show: true, id, descricao: recorrente.descricao });
     }
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteModal.id) return;
 
     try {
-      await recorrentesService.deletar(id);
+      await recorrentesService.deletar(deleteModal.id);
+      setDeleteModal({ show: false, id: null, descricao: '' });
       await carregarDados();
     } catch (err: any) {
       alert(err.response?.data?.error || 'Erro ao excluir');
     }
+  };
+
+  const cancelDelete = () => {
+    setDeleteModal({ show: false, id: null, descricao: '' });
   };
 
   const handleToggleAtiva = async (id: number, ativa: boolean) => {
@@ -107,18 +119,23 @@ const DashboardRecorrentesPage: React.FC = () => {
     }
   };
 
-  const handleGerarMes = async () => {
-    if (!window.confirm('Deseja gerar as transações recorrentes deste mês?')) {
-      return;
-    }
+  const handleGerarMes = () => {
+    setGerarMesModal(true);
+  };
 
+  const confirmGerarMes = async () => {
     try {
       const result = await recorrentesService.gerarMes();
       alert(result.message);
+      setGerarMesModal(false);
       await carregarDados();
     } catch (err: any) {
       alert(err.response?.data?.error || 'Erro ao gerar transações');
     }
+  };
+
+  const cancelGerarMes = () => {
+    setGerarMesModal(false);
   };
 
   const handleMarcarPago = async (transacaoId: number, pago: boolean) => {
@@ -189,7 +206,7 @@ const DashboardRecorrentesPage: React.FC = () => {
                 </button>
                 <div>
                   <h1 className="flex items-center gap-2">
-                    <DollarSign className="w-8 h-8 text-green-600" />
+                    <Repeat className="w-8 h-8 text-blue-600" />
                     Dashboard de Despesas Fixas
                   </h1>
                   <p className="header-subtitle">Gerencie suas despesas e receitas recorrentes</p>
@@ -197,13 +214,19 @@ const DashboardRecorrentesPage: React.FC = () => {
               </div>
             </div>
             <div className="header-acoes">
-              <button onClick={handleGerarMes} className="btn-gerar-mes">
-                <RefreshCw className="w-4 h-4" />
-                Gerar Transações do Mês
+              <button 
+                onClick={handleGerarMes} 
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md"
+              >
+                <RefreshCw className="w-5 h-5" />
+                <span>Gerar Transações do Mês</span>
               </button>
-              <button className="btn-adicionar">
-                <Plus className="w-4 h-4" />
-                Nova Despesa Fixa
+              <button 
+                onClick={() => navigate('/despesas', { state: { openRecorrenteForm: true } })}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-md"
+              >
+                <Plus className="w-5 h-5" />
+                <span>Nova Despesa Fixa</span>
               </button>
             </div>
           </div>
@@ -249,6 +272,108 @@ const DashboardRecorrentesPage: React.FC = () => {
           </div>
         </div>
       </main>
+
+      {/* Modal de Confirmação de Exclusão */}
+      <AnimatePresence>
+        {deleteModal.show && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={cancelDelete}
+              className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6"
+              >
+                <div className="text-center">
+                  <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                    <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    Confirmar Exclusão
+                  </h3>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Tem certeza que deseja excluir a despesa fixa <strong>"{deleteModal.descricao}"</strong>? Esta ação não pode ser desfeita.
+                  </p>
+                  <div className="flex gap-3 justify-center">
+                    <button
+                      onClick={cancelDelete}
+                      className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={confirmDelete}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                    >
+                      Excluir
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Modal de Confirmação para Gerar Transações do Mês */}
+      <AnimatePresence>
+        {gerarMesModal && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={cancelGerarMes}
+              className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6"
+              >
+                <div className="text-center">
+                  <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 mb-4">
+                    <svg className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    Gerar Transações do Mês
+                  </h3>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Deseja gerar todas as transações recorrentes ativas para o mês atual? Esta ação criará novas transações baseadas nas despesas fixas cadastradas.
+                  </p>
+                  <div className="flex gap-3 justify-center">
+                    <button
+                      onClick={cancelGerarMes}
+                      className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={confirmGerarMes}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                    >
+                      Gerar
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

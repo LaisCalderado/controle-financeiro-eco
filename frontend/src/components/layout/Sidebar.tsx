@@ -42,14 +42,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
       label: 'Serviço Completo'
     },
     {
-      path: '/despesas',
-      icon: TrendingDown,
-      label: 'Despesas'
-    },
-    {
       path: '/dashboard-recorrentes',
       icon: Repeat,
       label: 'Despesas Fixas'
+    },
+    {
+      path: '/despesas',
+      icon: TrendingDown,
+      label: 'Despesas'
     },
     {
       path: '/relatorio',
