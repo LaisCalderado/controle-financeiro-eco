@@ -21,13 +21,56 @@ const verifyToken = (req: any, res: any, next: any) => {
     }
 };
 
-// Listar todas as transações parceladas do usuário
-router.get('/parceladas', verifyToken, async (req: any, res) => {
+// Listar todas as transações parceladas do usuário com progresso
+router.get('/', verifyToken, async (req: any, res) => {
     try {
-        const result = await pool.query(
-            'SELECT * FROM transacoes_parceladas WHERE usuario_id = $1 ORDER BY data_primeira_parcela DESC',
-            [req.userId]
+        // Verificar se a coluna pago existe
+        const checkPagoColumn = await pool.query(
+            `SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'transacoes' 
+            AND column_name = 'pago'`
         );
+
+        const temColunaPago = checkPagoColumn.rows.length > 0;
+
+        let query = '';
+        if (temColunaPago) {
+            query = `
+                SELECT 
+                    p.*,
+                    COALESCE(COUNT(t.id) FILTER (WHERE t.pago = true), 0)::integer as parcelas_pagas
+                FROM transacoes_parceladas p
+                LEFT JOIN transacoes t ON 
+                    t.usuario_id = p.usuario_id AND 
+                    t.descricao LIKE p.descricao || '%' AND
+                    t.tipo = p.tipo AND
+                    t.categoria = p.categoria AND
+                    t.valor = p.valor_parcela
+                WHERE p.usuario_id = $1
+                GROUP BY p.id
+                ORDER BY p.data_primeira_parcela DESC
+            `;
+        } else {
+            // Se não tem coluna pago, retorna sem o filtro
+            query = `
+                SELECT 
+                    p.*,
+                    COALESCE(COUNT(t.id), 0)::integer as parcelas_pagas
+                FROM transacoes_parceladas p
+                LEFT JOIN transacoes t ON 
+                    t.usuario_id = p.usuario_id AND 
+                    t.descricao LIKE p.descricao || '%' AND
+                    t.tipo = p.tipo AND
+                    t.categoria = p.categoria AND
+                    t.valor = p.valor_parcela
+                WHERE p.usuario_id = $1
+                GROUP BY p.id
+                ORDER BY p.data_primeira_parcela DESC
+            `;
+        }
+        
+        const result = await pool.query(query, [req.userId]);
         res.json(result.rows);
     } catch (error) {
         console.error('Erro ao buscar transações parceladas:', error);
@@ -36,7 +79,7 @@ router.get('/parceladas', verifyToken, async (req: any, res) => {
 });
 
 // Criar nova transação parcelada
-router.post('/parceladas', verifyToken, async (req: any, res) => {
+router.post('/', verifyToken, async (req: any, res) => {
     const { descricao, valor_total, total_parcelas, tipo, categoria, data_primeira_parcela } = req.body;
 
     if (!descricao || !valor_total || !total_parcelas || !tipo || !data_primeira_parcela) {
@@ -108,23 +151,78 @@ router.post('/parceladas', verifyToken, async (req: any, res) => {
 });
 
 // Atualizar transação parcelada
-router.put('/parceladas/:id', verifyToken, async (req: any, res) => {
+router.put('/:id', verifyToken, async (req: any, res) => {
     const { id } = req.params;
-    const { ativa } = req.body;
+    const { descricao, valor_total, total_parcelas, categoria, data_primeira_parcela, ativa } = req.body;
 
     try {
+        // Se recebeu apenas ativa, só atualiza o status
+        if (ativa !== undefined && !descricao) {
+            const query = `
+                UPDATE transacoes_parceladas 
+                SET ativa = $1
+                WHERE id = $2 AND usuario_id = $3
+                RETURNING *
+            `;
+
+            const result = await pool.query(query, [ativa, id, req.userId]);
+
+            if (result.rows.length === 0) {
+                return res.status(404).json({ error: 'Transação parcelada não encontrada' });
+            }
+
+            return res.json(result.rows[0]);
+        }
+
+        // Atualização completa dos dados
+        const valor_parcela = (parseFloat(valor_total) / parseInt(total_parcelas)).toFixed(2);
+
+        // Buscar a descrição antiga antes de atualizar
+        const oldData = await pool.query(
+            'SELECT descricao FROM transacoes_parceladas WHERE id = $1 AND usuario_id = $2',
+            [id, req.userId]
+        );
+
+        if (oldData.rows.length === 0) {
+            return res.status(404).json({ error: 'Transação parcelada não encontrada' });
+        }
+
+        const oldDescricao = oldData.rows[0].descricao;
+
         const query = `
             UPDATE transacoes_parceladas 
-            SET ativa = $1
-            WHERE id = $2 AND usuario_id = $3
+            SET descricao = $1, 
+                valor_total = $2, 
+                valor_parcela = $3, 
+                categoria = $4,
+                total_parcelas = $5,
+                data_primeira_parcela = $6
+            WHERE id = $7 AND usuario_id = $8
             RETURNING *
         `;
 
-        const result = await pool.query(query, [ativa, id, req.userId]);
+        const result = await pool.query(query, [
+            descricao,
+            valor_total,
+            valor_parcela,
+            categoria,
+            total_parcelas,
+            data_primeira_parcela,
+            id,
+            req.userId
+        ]);
 
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Transação parcelada não encontrada' });
-        }
+        // Atualizar as transações já criadas mantendo o número da parcela
+        await pool.query(
+            `UPDATE transacoes 
+             SET descricao = REPLACE(descricao, $1, $2),
+                 valor = $3,
+                 categoria = $4
+             WHERE usuario_id = $5 
+             AND descricao LIKE $6
+             AND tipo = $7`,
+            [oldDescricao, descricao, valor_parcela, categoria, req.userId, `${oldDescricao}%`, 'despesa']
+        );
 
         res.json(result.rows[0]);
     } catch (error) {
@@ -134,7 +232,7 @@ router.put('/parceladas/:id', verifyToken, async (req: any, res) => {
 });
 
 // Deletar transação parcelada
-router.delete('/parceladas/:id', verifyToken, async (req: any, res) => {
+router.delete('/:id', verifyToken, async (req: any, res) => {
     const { id } = req.params;
 
     try {

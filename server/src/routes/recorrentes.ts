@@ -242,6 +242,16 @@ router.get('/vencimentos', verifyToken, async (req: any, res) => {
         const mesAtual = hoje.getMonth();
         const anoAtual = hoje.getFullYear();
 
+        // Verificar se a coluna pago existe
+        const checkPagoColumn = await pool.query(
+            `SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'transacoes' 
+            AND column_name = 'pago'`
+        );
+
+        const temColunaPago = checkPagoColumn.rows.length > 0;
+
         const recorrentes = await pool.query(
             'SELECT * FROM transacoes_recorrentes WHERE usuario_id = $1 AND ativa = true ORDER BY dia_vencimento ASC',
             [req.userId]
@@ -262,12 +272,23 @@ router.get('/vencimentos', verifyToken, async (req: any, res) => {
 
             // Buscar se existe uma transação para este mês e se foi paga
             const mesFormatado = dataVencimento.toISOString().slice(0, 7);
+            let transacaoQuery = '';
+            if (temColunaPago) {
+                transacaoQuery = `SELECT id, pago FROM transacoes 
+                    WHERE usuario_id = $1 
+                    AND descricao = $2 
+                    AND TO_CHAR(data, 'YYYY-MM') = $3
+                    LIMIT 1`;
+            } else {
+                transacaoQuery = `SELECT id FROM transacoes 
+                    WHERE usuario_id = $1 
+                    AND descricao = $2 
+                    AND TO_CHAR(data, 'YYYY-MM') = $3
+                    LIMIT 1`;
+            }
+
             const transacao = await pool.query(
-                `SELECT id, pago FROM transacoes 
-                 WHERE usuario_id = $1 
-                 AND descricao = $2 
-                 AND TO_CHAR(data, 'YYYY-MM') = $3
-                 LIMIT 1`,
+                transacaoQuery,
                 [req.userId, rec.descricao, mesFormatado]
             );
 
@@ -296,21 +317,50 @@ router.get('/vencimentos', verifyToken, async (req: any, res) => {
 // Estatísticas gerais
 router.get('/stats', verifyToken, async (req: any, res) => {
     try {
-        // Buscar transações pagas deste mês para calcular totais reais
+        // Buscar transações deste mês para calcular totais reais
         const hoje = new Date();
         const mesAtual = hoje.getMonth();
         const anoAtual = hoje.getFullYear();
         const primeiroDiaMes = new Date(anoAtual, mesAtual, 1);
         const ultimoDiaMes = new Date(anoAtual, mesAtual + 1, 0);
 
+        // Verificar se a coluna pago existe
+        const checkPagoColumn = await pool.query(
+            `SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'transacoes' 
+            AND column_name = 'pago'`
+        );
+
+        const temColunaPago = checkPagoColumn.rows.length > 0;
+
+        // Buscar transações do mês (com ou sem filtro de pago)
+        let transacoesPagasQuery = '';
+        if (temColunaPago) {
+            transacoesPagasQuery = `
+                SELECT 
+                    SUM(CASE WHEN tipo = 'despesa' AND pago = true THEN valor ELSE 0 END) as total_despesas_pagas,
+                    SUM(CASE WHEN tipo = 'receita' AND pago = true THEN valor ELSE 0 END) as total_receitas_pagas
+                FROM transacoes 
+                WHERE usuario_id = $1 
+                AND data >= $2 
+                AND data <= $3
+            `;
+        } else {
+            // Se não tem coluna pago, considera todas as transações
+            transacoesPagasQuery = `
+                SELECT 
+                    SUM(CASE WHEN tipo = 'despesa' THEN valor ELSE 0 END) as total_despesas_pagas,
+                    SUM(CASE WHEN tipo = 'receita' THEN valor ELSE 0 END) as total_receitas_pagas
+                FROM transacoes 
+                WHERE usuario_id = $1 
+                AND data >= $2 
+                AND data <= $3
+            `;
+        }
+
         const transacoesPagas = await pool.query(
-            `SELECT 
-                SUM(CASE WHEN tipo = 'despesa' AND pago = true THEN valor ELSE 0 END) as total_despesas_pagas,
-                SUM(CASE WHEN tipo = 'receita' AND pago = true THEN valor ELSE 0 END) as total_receitas_pagas
-            FROM transacoes 
-            WHERE usuario_id = $1 
-            AND data >= $2 
-            AND data <= $3`,
+            transacoesPagasQuery,
             [req.userId, primeiroDiaMes.toISOString().split('T')[0], ultimoDiaMes.toISOString().split('T')[0]]
         );
 
@@ -331,20 +381,41 @@ router.get('/stats', verifyToken, async (req: any, res) => {
             total_mensal: (parseFloat(transacoesPagas.rows[0].total_receitas_pagas) || 0) - (parseFloat(transacoesPagas.rows[0].total_despesas_pagas) || 0)
         };
 
-        // Buscar estatísticas por categoria (apenas transações pagas)
+        // Buscar estatísticas por categoria
+        let categoriasQuery = '';
+        if (temColunaPago) {
+            categoriasQuery = `
+                SELECT 
+                    categoria,
+                    COUNT(*) as quantidade,
+                    SUM(valor) as total
+                FROM transacoes 
+                WHERE usuario_id = $1 
+                AND tipo = 'despesa' 
+                AND pago = true
+                AND data >= $2 
+                AND data <= $3
+                GROUP BY categoria
+                ORDER BY total DESC
+            `;
+        } else {
+            categoriasQuery = `
+                SELECT 
+                    categoria,
+                    COUNT(*) as quantidade,
+                    SUM(valor) as total
+                FROM transacoes 
+                WHERE usuario_id = $1 
+                AND tipo = 'despesa' 
+                AND data >= $2 
+                AND data <= $3
+                GROUP BY categoria
+                ORDER BY total DESC
+            `;
+        }
+
         const categorias = await pool.query(
-            `SELECT 
-                categoria,
-                COUNT(*) as quantidade,
-                SUM(valor) as total
-            FROM transacoes 
-            WHERE usuario_id = $1 
-            AND tipo = 'despesa' 
-            AND pago = true
-            AND data >= $2 
-            AND data <= $3
-            GROUP BY categoria
-            ORDER BY total DESC`,
+            categoriasQuery,
             [req.userId, primeiroDiaMes.toISOString().split('T')[0], ultimoDiaMes.toISOString().split('T')[0]]
         );
 

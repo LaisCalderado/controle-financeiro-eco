@@ -133,6 +133,20 @@ router.put('/transactions/:id/marcar-pago', verifyToken, async (req: any, res) =
     }
 
     try {
+        // Verificar se a coluna pago existe
+        const checkPagoColumn = await pool.query(
+            `SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'transacoes' 
+            AND column_name = 'pago'`
+        );
+
+        if (checkPagoColumn.rows.length === 0) {
+            return res.status(400).json({ 
+                error: 'Coluna pago não existe. Execute a migration add_pago_column.sql primeiro.' 
+            });
+        }
+
         const result = await pool.query(
             'UPDATE transacoes SET pago = $1 WHERE id = $2 AND usuario_id = $3 RETURNING *',
             [pago, id, req.userId]
