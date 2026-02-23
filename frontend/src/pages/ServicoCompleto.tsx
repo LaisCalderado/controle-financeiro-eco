@@ -116,8 +116,9 @@ export default function ServicoCompleto() {
         categoria: 'lavagem'
       });
       fetchReceitas();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao salvar receita:', error);
+      alert(`Erro ao salvar receita: ${error.response?.data?.error || error.message}`);
     } finally {
       setIsSaving(false);
     }

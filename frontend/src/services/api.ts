@@ -27,3 +27,20 @@ api.interceptors.request.use(
     return Promise.reject(error);
   }
 );
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error?.response?.status;
+
+    if (status === 401) {
+      localStorage.removeItem('token');
+
+      if (window.location.pathname !== '/') {
+        window.location.href = '/';
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);

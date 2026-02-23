@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { api } from "../../services/api";
 
 interface Props {
     userId: number;
@@ -48,51 +49,62 @@ const RegisterTransactionForm: React.FC<Props> = ({ userId, onAddTransaction }) 
             return;
         }
 
-            // Monta payload completo para backend, sempre enviando todos os campos esperados
-            const payload: any = {
-                userId,
-                tipo,
-                date,
-                value: parseFloat(value),
-                serviceType: tipo === "receita" ? serviceType : null,
-                operationType: tipo === "receita"
-                    ? (serviceType === "Self-service" ? operationType.join(", ") : "Lavagem")
-                    : null,
-                paymentMethod: tipo === "receita" ? paymentMethod : null,
-                descricao: tipo === "despesa" ? descricao : null
-            };
+        const valorNumerico = parseFloat(value);
+        const tipoServico =
+            tipo === "receita"
+                ? serviceType === "Self-service"
+                    ? "selfservice"
+                    : "completo"
+                : undefined;
+
+        const categoriaReceita =
+            tipo === "receita"
+                ? serviceType === "Self-service"
+                    ? (operationType[0]?.toLowerCase() || "outros")
+                    : "lavagem"
+                : "outros";
+
+        const descricaoFinal =
+            tipo === "despesa"
+                ? descricao
+                : serviceType === "Self-service"
+                    ? `Receita ${operationType.join(" + ")}`
+                    : "Receita Serviço Completo";
+
+        const payload: any = {
+            data: date,
+            valor: valorNumerico,
+            tipo,
+            categoria: categoriaReceita,
+            descricao: descricaoFinal,
+            tipo_servico: tipoServico,
+            paymentMethod: tipo === "receita" ? paymentMethod : null
+        };
 
         // Log detalhado
         console.log("Payload enviado:", payload);
 
         try {
-            const response = await fetch("https://controle-financeiro-eco-back.onrender.com/api/transactions", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
-            });
-            const data = await response.json();
-            if (!response.ok) {
-                console.error("Erro backend:", data);
-                throw new Error(data.error || "Erro ao registrar transação");
-            }
+            const response = await api.post('/api/transactions', payload);
+            const data = response.data;
+
             setSuccess("Transação registrada com sucesso!");
             setDate("");
             setValue("");
             setDescricao("");
                     const newTransaction = {
-                        id: data.transaction.id,
+                        id: data.id,
                         tipo,
-                        valor: Number(data.transaction.value),
-                        date: data.transaction.date,
+                        valor: Number(data.valor),
+                        date: data.data,
                         descricao: tipo === "despesa"
-                            ? data.transaction.descricao // pega do backend, que já retorna o texto digitado
-                            : `${data.transaction.operation_type} - ${data.transaction.service_type}`,
-                        serviceType: tipo === "receita" ? data.transaction.service_type : ""
+                            ? data.descricao
+                            : data.descricao,
+                        serviceType: tipo === "receita" ? data.tipo_servico : ""
                     };
             onAddTransaction(newTransaction);
         } catch (err: any) {
-            setError(err.message);
+            setError(err.response?.data?.error || err.message);
         }
     };
 

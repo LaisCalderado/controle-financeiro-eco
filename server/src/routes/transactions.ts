@@ -5,7 +5,7 @@ import jwt from "jsonwebtoken";
 const router = Router();
 
 // Middleware para verificar o token JWT
-const verifyToken = (req: any, res: any, next: any) => {
+const verifyToken = async (req: any, res: any, next: any) => {
     const token = req.headers.authorization?.split(' ')[1];
     
     if (!token) {
@@ -14,7 +14,14 @@ const verifyToken = (req: any, res: any, next: any) => {
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'chave_secreta') as any;
-        req.userId = decoded.id;
+        const userId = decoded.id;
+
+        const userResult = await pool.query('SELECT id FROM usuarios WHERE id = $1', [userId]);
+        if (userResult.rows.length === 0) {
+            return res.status(401).json({ error: 'Sessão inválida. Faça login novamente.' });
+        }
+
+        req.userId = userId;
         next();
     } catch (error) {
         return res.status(401).json({ error: 'Token inválido' });
@@ -45,18 +52,32 @@ router.post('/transactions', verifyToken, async (req: any, res) => {
         return res.status(400).json({ error: "Campos obrigatórios ausentes (data, valor, tipo)" });
     }
 
+    const valorNumerico = Number(valor);
+    if (!Number.isFinite(valorNumerico) || valorNumerico <= 0) {
+        return res.status(400).json({ error: 'Valor inválido. Informe um número maior que zero.' });
+    }
+
     try {
         // Garante que a data seja tratada como data local sem conversão de timezone
         const dataLocal = data.includes('T') ? data.split('T')[0] : data;
         
         const query = `INSERT INTO transacoes (usuario_id, data, valor, tipo, tipo_servico, categoria, descricao) 
                        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *;`;
-        const values = [req.userId, dataLocal, valor, tipo, tipo_servico || null, categoria || null, descricao || null];
+        const values = [req.userId, dataLocal, valorNumerico, tipo, tipo_servico || null, categoria || null, descricao || null];
         
         const result = await pool.query(query, values);
         res.status(201).json(result.rows[0]);
-    } catch (err) {
+    } catch (err: any) {
         console.error("Erro ao salvar transação", err);
+
+        if (err.code === '23503') {
+            return res.status(401).json({ error: 'Sessão inválida. Faça login novamente.' });
+        }
+
+        if (err.code === '23514' || err.code === '22P02') {
+            return res.status(400).json({ error: 'Dados inválidos para salvar a transação.' });
+        }
+
         res.status(500).json({ error: "Erro ao salvar transação" });
     }
 });

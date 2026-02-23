@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { format, startOfDay, endOfDay, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
+import { format, startOfDay, endOfDay, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Filter, Calendar } from 'lucide-react';
 
@@ -38,6 +38,10 @@ export default function FiltroData({ onFilterChange, currentFilter }: FiltroData
         inicio = startOfMonth(hoje);
         fim = endOfMonth(hoje);
         break;
+      case 'mes-passado':
+        inicio = startOfMonth(subMonths(hoje, 1));
+        fim = endOfMonth(subMonths(hoje, 1));
+        break;
       case 'ano':
         inicio = startOfYear(hoje);
         fim = endOfYear(hoje);
@@ -73,6 +77,7 @@ export default function FiltroData({ onFilterChange, currentFilter }: FiltroData
       >
         <option value="dia">Hoje</option>
         <option value="mes">Este mês</option>
+        <option value="mes-passado">Mês passado</option>
         <option value="ano">Este ano</option>
         <option value="personalizado">Personalizado</option>
       </select>

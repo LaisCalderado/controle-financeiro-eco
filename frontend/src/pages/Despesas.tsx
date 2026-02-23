@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { startOfMonth, endOfMonth, parseISO, isWithinInterval } from 'date-fns';
 import { Plus, TrendingDown, Menu } from 'lucide-react';
@@ -21,6 +21,7 @@ interface Transacao {
 
 export default function Despesas() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [despesas, setDespesas] = useState<Transacao[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -34,6 +35,7 @@ export default function Despesas() {
   });
   const [deleteModal, setDeleteModal] = useState<{ show: boolean; id: number | null; descricao: string }>({ show: false, id: null, descricao: '' });
   const [initialFormType, setInitialFormType] = useState<'normal' | 'recorrente' | 'parcelada'>('normal');
+  const [editingParcelada, setEditingParcelada] = useState<any>(null);
 
   useEffect(() => {
     fetchDespesas();
@@ -57,6 +59,15 @@ export default function Despesas() {
         categoria: recorrente.categoria
       });
       setShowForm(true);
+      
+      // Limpar o state para não reabrir ao voltar
+      window.history.replaceState({}, document.title);
+    } else if (state?.editParcelada) {
+      // Abrir formulário com dados pré-preenchidos da despesa parcelada
+      const parcelada = state.editParcelada;
+      setEditingParcelada(parcelada);
+      setShowForm(true);
+      setInitialFormType('parcelada');
       
       // Limpar o state para não reabrir ao voltar
       window.history.replaceState({}, document.title);
@@ -121,9 +132,9 @@ export default function Despesas() {
       setShowForm(false);
       setEditingDespesa(null);
       fetchDespesas();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao salvar despesa:', error);
-      alert('Erro ao salvar despesa');
+      alert(`Erro ao salvar despesa: ${error.response?.data?.error || error.message}`);
     } finally {
       setIsSaving(false);
     }
@@ -141,9 +152,9 @@ export default function Despesas() {
       setShowForm(false);
       fetchDespesas(); // Atualiza a lista
       alert('Despesa fixa cadastrada com sucesso!');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao salvar despesa recorrente:', error);
-      alert('Erro ao salvar despesa fixa');
+      alert(`Erro ao salvar despesa fixa: ${error.response?.data?.error || error.message}`);
     } finally {
       setIsSaving(false);
     }
@@ -154,16 +165,30 @@ export default function Despesas() {
       setIsSaving(true);
       const token = localStorage.getItem('token');
       
-      await api.post('/api/parceladas', data, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      // Se está editando uma parcelada existente, atualiza
+      if (editingParcelada && editingParcelada.id) {
+        await api.put(`/api/parceladas/${editingParcelada.id}`, data, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        alert('Despesa parcelada atualizada com sucesso!');
+        
+        // Redirecionar de volta para o dashboard de despesas fixas
+        navigate('/despesas-fixas');
+        return;
+      } else {
+        // Senão, cria nova
+        await api.post('/api/parceladas', data, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        alert('Despesa parcelada cadastrada com sucesso!');
+      }
 
       setShowForm(false);
+      setEditingParcelada(null);
       fetchDespesas(); // Atualiza a lista pois as parcelas já foram criadas
-      alert('Despesa parcelada cadastrada com sucesso!');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao salvar despesa parcelada:', error);
-      alert('Erro ao salvar despesa parcelada');
+      alert(`Erro ao salvar despesa parcelada: ${error.response?.data?.error || error.message}`);
     } finally {
       setIsSaving(false);
     }
@@ -292,10 +317,12 @@ export default function Despesas() {
                   onCancel={() => {
                     setShowForm(false);
                     setEditingDespesa(null);
+                    setEditingParcelada(null);
                     setInitialFormType('normal');
                   }}
                   isLoading={isSaving}
                   initialTipoTransacao={initialFormType}
+                  parceladaData={editingParcelada}
                 />
               </motion.div>
             )}
