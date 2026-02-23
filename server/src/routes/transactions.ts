@@ -31,10 +31,36 @@ const verifyToken = async (req: any, res: any, next: any) => {
 // Buscar todas as transações do usuário
 router.get('/transactions', verifyToken, async (req: any, res) => {
     try {
-        const result = await pool.query(
-            'SELECT * FROM transacoes WHERE usuario_id = $1 ORDER BY data DESC',
-            [req.userId]
-        );
+                const checkPagoColumn = await pool.query(
+                        `SELECT column_name 
+                         FROM information_schema.columns 
+                         WHERE table_name = 'transacoes' 
+                         AND column_name = 'pago'`
+                );
+
+                const temColunaPago = checkPagoColumn.rows.length > 0;
+
+                const query = temColunaPago
+                        ? `
+                                SELECT t.*
+                                FROM transacoes t
+                                WHERE t.usuario_id = $1
+                                    AND (
+                                        t.tipo <> 'despesa'
+                                        OR t.pago = true
+                                        OR NOT EXISTS (
+                                            SELECT 1
+                                            FROM transacoes_recorrentes tr
+                                            WHERE tr.usuario_id = t.usuario_id
+                                                AND tr.tipo = 'despesa'
+                                                AND LOWER(TRIM(tr.descricao)) = LOWER(TRIM(t.descricao))
+                                        )
+                                    )
+                                ORDER BY t.data DESC
+                            `
+                        : 'SELECT * FROM transacoes WHERE usuario_id = $1 ORDER BY data DESC';
+
+                const result = await pool.query(query, [req.userId]);
         res.json(result.rows);
     } catch (error) {
         console.error('Erro ao buscar transações:', error);
