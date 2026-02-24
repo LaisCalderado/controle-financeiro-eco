@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { format, parseISO, isToday, isYesterday } from 'date-fns';
+import React from 'react';
+import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Pencil, Trash2, TrendingUp, TrendingDown, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -66,17 +66,13 @@ export default function TransacaoList({ transacoes, tipo, onEdit, onDelete, isLo
 
   const formatarData = (dataString: string) => {
     const data = parseISO(dataString);
-    
-    if (isToday(data)) {
-      return 'Hoje';
-    }
-    
-    if (isYesterday(data)) {
-      return 'Ontem';
-    }
-    
-    // Formato: "Sexta, 03 Jan"
+
     return format(data, "EEEE, dd MMM", { locale: ptBR });
+  };
+
+  const formatarDataCompacta = (dataString: string) => {
+    const data = parseISO(dataString);
+    return format(data, 'dd/MM', { locale: ptBR });
   };
 
   if (isLoading) {
@@ -130,7 +126,8 @@ export default function TransacaoList({ transacoes, tipo, onEdit, onDelete, isLo
                     <div className="flex items-center gap-2 flex-wrap">
                       <div className="flex items-center gap-1.5 text-sm font-medium text-slate-600 bg-slate-50 px-2.5 py-1 rounded-md">
                         <Calendar className="w-3.5 h-3.5" />
-                        <span>{formatarData(transacao.data)}</span>
+                        <span className="hidden sm:inline">{formatarData(transacao.data)}</span>
+                        <span className="sm:hidden">{formatarDataCompacta(transacao.data)}</span>
                       </div>
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium ${
                         categoriaStyles[transacao.categoria]?.color || 'bg-gray-100 text-gray-700'
