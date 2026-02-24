@@ -7,6 +7,7 @@ import Sidebar from '../components/layout/Sidebar';
 import StatCard from '../components/dashboard/StatCard';
 import FiltroData from '../components/dashboard/FiltroData';
 import TransacaoList from '../components/financeiro/TransacaoList';
+import ServicoCompletoForm from '../components/financeiro/ServicoCompletoForm';
 
 interface Transacao {
   id: number;
@@ -42,7 +43,6 @@ export default function ServicoCompleto() {
 
   const TAXA_SERVICO = 15.00;
   const PRECO_LAVAGEM_UNITARIO = 16.99;
-  const PRECO_SECAGEM_UNITARIO = 16.99;
 
   useEffect(() => {
     fetchReceitas();
@@ -56,9 +56,12 @@ export default function ServicoCompleto() {
         headers: { Authorization: `Bearer ${token}` }
       });
       // Filtrar apenas receitas do tipo serviço completo
-      const receitasData = response.data.filter((t: Transacao) => 
-        t.tipo === 'receita' && t.tipo_servico === 'completo'
-      );
+      const receitasData = response.data
+        .filter((t: Transacao) => t.tipo === 'receita' && t.tipo_servico === 'completo')
+        .map((t: Transacao) => ({
+          ...t,
+          categoria: t.categoria || 'outros'
+        }));
       setReceitas(receitasData);
     } catch (error) {
       console.error('Erro ao buscar receitas serviço completo:', error);
@@ -78,41 +81,15 @@ export default function ServicoCompleto() {
     return receitasFiltradas.reduce((sum, r) => sum + (Number(r.valor) || 0), 0);
   }, [receitasFiltradas]);
 
-  const valorBase = useMemo(() => {
-    const totalLavagem = (Number(formData.qtdLavagens) || 0) * PRECO_LAVAGEM_UNITARIO;
-    const totalSecagem = (Number(formData.qtdSecagens) || 0) * PRECO_SECAGEM_UNITARIO;
-    return totalLavagem + totalSecagem;
-  }, [formData.qtdLavagens, formData.qtdSecagens]);
-
-  const valorTotal = useMemo(() => {
-    return valorBase + TAXA_SERVICO;
-  }, [valorBase]);
-
-  const ajustarQuantidade = (tipo: 'lavagem' | 'secagem', incremento: number) => {
-    setFormData((prev) => {
-      if (tipo === 'lavagem') {
-        return { ...prev, qtdLavagens: Math.max(0, prev.qtdLavagens + incremento) };
-      }
-      return { ...prev, qtdSecagens: Math.max(0, prev.qtdSecagens + incremento) };
-    });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if ((formData.qtdLavagens || 0) + (formData.qtdSecagens || 0) <= 0) {
-      alert('Informe pelo menos uma lavagem ou secagem.');
-      return;
-    }
-    
+  const handleSubmit = async (payload: { data: string; descricao: string; valorTotal: number; qtdLavagens: number; qtdSecagens: number; }) => {
     try {
       setIsSaving(true);
       const token = localStorage.getItem('token');
       
       const dataToSend = {
-        data: formData.data,
-        valor: valorTotal,
-        descricao: formData.descricao,
+        data: payload.data,
+        valor: payload.valorTotal,
+        descricao: payload.descricao,
         categoria: 'outros',
         tipo: 'receita',
         tipo_servico: 'completo'
@@ -292,138 +269,23 @@ export default function ServicoCompleto() {
                     {editingReceita ? 'Editar Receita' : 'Nova Receita'}
                   </h3>
                   
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
-                          Data
-                        </label>
-                        <input
-                          type="date"
-                          value={formData.data}
-                          onChange={(e) => setFormData({ ...formData, data: e.target.value })}
-                          required
-                          className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
-                          Descrição
-                        </label>
-                        <input
-                          type="text"
-                          value={formData.descricao}
-                          onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
-                          placeholder="Ex: 2 lavagens e 2 secagens - Cliente João"
-                          required
-                          className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
-                          Quantidade de Lavagens
-                        </label>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => ajustarQuantidade('lavagem', -1)}
-                            className="px-3 py-2 border border-slate-300 rounded-lg hover:bg-slate-50"
-                          >
-                            -
-                          </button>
-                          <input
-                            type="number"
-                            min="0"
-                            step="1"
-                            value={formData.qtdLavagens}
-                            onChange={(e) => setFormData({ ...formData, qtdLavagens: Math.max(0, Number(e.target.value) || 0) })}
-                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => ajustarQuantidade('lavagem', 1)}
-                            className="px-3 py-2 border border-slate-300 rounded-lg hover:bg-slate-50"
-                          >
-                            +
-                          </button>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
-                          Quantidade de Secagens
-                        </label>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => ajustarQuantidade('secagem', -1)}
-                            className="px-3 py-2 border border-slate-300 rounded-lg hover:bg-slate-50"
-                          >
-                            -
-                          </button>
-                          <input
-                            type="number"
-                            min="0"
-                            step="1"
-                            value={formData.qtdSecagens}
-                            onChange={(e) => setFormData({ ...formData, qtdSecagens: Math.max(0, Number(e.target.value) || 0) })}
-                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => ajustarQuantidade('secagem', 1)}
-                            className="px-3 py-2 border border-slate-300 rounded-lg hover:bg-slate-50"
-                          >
-                            +
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                      <p className="text-sm text-slate-600 mb-1">
-                        Lavagens ({formData.qtdLavagens}x): R$ {(formData.qtdLavagens * PRECO_LAVAGEM_UNITARIO).toFixed(2)}
-                      </p>
-                      <p className="text-sm text-slate-600 mb-1">
-                        Secagens ({formData.qtdSecagens}x): R$ {(formData.qtdSecagens * PRECO_SECAGEM_UNITARIO).toFixed(2)}
-                      </p>
-                      <p className="text-sm text-slate-600 mb-1">Subtotal serviços: R$ {valorBase.toFixed(2)}</p>
-                      <p className="text-sm text-slate-600 mb-1">Taxa de Serviço: + R$ {TAXA_SERVICO.toFixed(2)}</p>
-                      <p className="text-lg font-bold text-amber-700">
-                        Valor Total: R$ {valorTotal.toFixed(2)}
-                      </p>
-                    </div>
-
-                    <div className="flex gap-3 pt-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowForm(false);
-                          setEditingReceita(null);
-                          setFormData({
-                            data: new Date().toISOString().split('T')[0],
-                            qtdLavagens: 0,
-                            qtdSecagens: 0,
-                            descricao: ''
-                          });
-                        }}
-                        className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
-                      >
-                        Cancelar
-                      </button>
-                      <button
-                        type="submit"
-                        disabled={isSaving}
-                        className="flex-1 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {isSaving ? 'Salvando...' : editingReceita ? 'Atualizar' : 'Salvar'}
-                      </button>
-                    </div>
-                  </form>
+                  <ServicoCompletoForm
+                    title={editingReceita ? 'Editar Receita' : 'Nova Receita'}
+                    initialValues={formData}
+                    isSaving={isSaving}
+                    submitLabel={isSaving ? 'Salvando...' : editingReceita ? 'Atualizar' : 'Salvar'}
+                    onCancel={() => {
+                      setShowForm(false);
+                      setEditingReceita(null);
+                      setFormData({
+                        data: new Date().toISOString().split('T')[0],
+                        qtdLavagens: 0,
+                        qtdSecagens: 0,
+                        descricao: ''
+                      });
+                    }}
+                    onSubmit={handleSubmit}
+                  />
                 </div>
               </motion.div>
             )}
