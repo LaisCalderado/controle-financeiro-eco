@@ -138,11 +138,12 @@ export default function TransacaoForm({ tipo, transacao, onSubmit, onCancel, isL
             <button
               type="button"
               onClick={() => setTipoTransacao('parcelada')}
+              disabled
               className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1 ${
                 tipoTransacao === 'parcelada'
                   ? 'bg-orange-600 text-white'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
+              } opacity-50 cursor-not-allowed`}
             >
               <CreditCard className="w-4 h-4" />
               Parcelada
