@@ -35,14 +35,14 @@ export default function ServicoCompleto() {
   // Estado do formulário
   const [formData, setFormData] = useState({
     data: new Date().toISOString().split('T')[0],
-    valorBase: '',
-    descricao: '',
-    categoria: 'lavagem'
+    qtdLavagens: 0,
+    qtdSecagens: 0,
+    descricao: ''
   });
 
   const TAXA_SERVICO = 15.00;
   const PRECO_LAVAGEM_UNITARIO = 16.99;
-  const QUANTIDADES_LAVAGEM = [1, 5, 6];
+  const PRECO_SECAGEM_UNITARIO = 16.99;
 
   useEffect(() => {
     fetchReceitas();
@@ -78,18 +78,32 @@ export default function ServicoCompleto() {
     return receitasFiltradas.reduce((sum, r) => sum + (Number(r.valor) || 0), 0);
   }, [receitasFiltradas]);
 
-  const valorTotal = useMemo(() => {
-    const base = Number(formData.valorBase) || 0;
-    return base + TAXA_SERVICO;
-  }, [formData.valorBase]);
+  const valorBase = useMemo(() => {
+    const totalLavagem = (Number(formData.qtdLavagens) || 0) * PRECO_LAVAGEM_UNITARIO;
+    const totalSecagem = (Number(formData.qtdSecagens) || 0) * PRECO_SECAGEM_UNITARIO;
+    return totalLavagem + totalSecagem;
+  }, [formData.qtdLavagens, formData.qtdSecagens]);
 
-  const aplicarQuantidadeLavagens = (quantidade: number) => {
-    const valorCalculado = (quantidade * PRECO_LAVAGEM_UNITARIO).toFixed(2);
-    setFormData((prev) => ({ ...prev, valorBase: valorCalculado }));
+  const valorTotal = useMemo(() => {
+    return valorBase + TAXA_SERVICO;
+  }, [valorBase]);
+
+  const ajustarQuantidade = (tipo: 'lavagem' | 'secagem', incremento: number) => {
+    setFormData((prev) => {
+      if (tipo === 'lavagem') {
+        return { ...prev, qtdLavagens: Math.max(0, prev.qtdLavagens + incremento) };
+      }
+      return { ...prev, qtdSecagens: Math.max(0, prev.qtdSecagens + incremento) };
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if ((formData.qtdLavagens || 0) + (formData.qtdSecagens || 0) <= 0) {
+      alert('Informe pelo menos uma lavagem ou secagem.');
+      return;
+    }
     
     try {
       setIsSaving(true);
@@ -99,7 +113,7 @@ export default function ServicoCompleto() {
         data: formData.data,
         valor: valorTotal,
         descricao: formData.descricao,
-        categoria: formData.categoria,
+        categoria: 'outros',
         tipo: 'receita',
         tipo_servico: 'completo'
       };
@@ -118,9 +132,9 @@ export default function ServicoCompleto() {
       setEditingReceita(null);
       setFormData({
         data: new Date().toISOString().split('T')[0],
-        valorBase: '',
-        descricao: '',
-        categoria: 'lavagem'
+        qtdLavagens: 0,
+        qtdSecagens: 0,
+        descricao: ''
       });
       fetchReceitas();
     } catch (error: any) {
@@ -132,13 +146,22 @@ export default function ServicoCompleto() {
   };
 
   const handleEdit = (receita: Transacao) => {
-    // Ao editar, subtrai a taxa para mostrar o valor base
-    const valorBase = Number(receita.valor) - TAXA_SERVICO;
+    const valorBaseExistente = Math.max(0, Number(receita.valor) - TAXA_SERVICO);
+    const qtdLavagensDescricao = receita.descricao?.match(/(\d+)\s*lavag/i);
+    const qtdSecagensDescricao = receita.descricao?.match(/(\d+)\s*secag/i);
+
+    let qtdLavagens = qtdLavagensDescricao ? Number(qtdLavagensDescricao[1]) : 0;
+    let qtdSecagens = qtdSecagensDescricao ? Number(qtdSecagensDescricao[1]) : 0;
+
+    if (qtdLavagens === 0 && qtdSecagens === 0 && valorBaseExistente > 0) {
+      qtdLavagens = Math.round(valorBaseExistente / PRECO_LAVAGEM_UNITARIO);
+    }
+
     setFormData({
       data: receita.data.split('T')[0],
-      valorBase: valorBase.toString(),
-      descricao: receita.descricao,
-      categoria: receita.categoria
+      qtdLavagens,
+      qtdSecagens,
+      descricao: receita.descricao
     });
     setEditingReceita(receita);
     setShowForm(true);
@@ -169,12 +192,6 @@ export default function ServicoCompleto() {
   const cancelDelete = () => {
     setDeleteModal({ show: false, id: null, descricao: '' });
   };
-
-  const categorias = [
-    { value: 'lavagem', label: 'Lavagem' },
-    { value: 'passadoria', label: 'Passadoria' },
-    { value: 'outros', label: 'Outros' }
-  ];
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-amber-50">
@@ -236,9 +253,9 @@ export default function ServicoCompleto() {
                 setEditingReceita(null);
                 setFormData({
                   data: new Date().toISOString().split('T')[0],
-                  valorBase: '',
-                  descricao: '',
-                  categoria: 'lavagem'
+                  qtdLavagens: 0,
+                  qtdSecagens: 0,
+                  descricao: ''
                 });
                 setShowForm(true);
               }}
@@ -292,73 +309,93 @@ export default function ServicoCompleto() {
 
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-2">
-                          Categoria
+                          Descrição
                         </label>
-                        <select
-                          value={formData.categoria}
-                          onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
+                        <input
+                          type="text"
+                          value={formData.descricao}
+                          onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
+                          placeholder="Ex: 2 lavagens e 2 secagens - Cliente João"
+                          required
                           className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none"
-                        >
-                          {categorias.map(cat => (
-                            <option key={cat.value} value={cat.value}>{cat.label}</option>
-                          ))}
-                        </select>
+                        />
                       </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Descrição
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.descricao}
-                        onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
-                        placeholder="Ex: Lavagem + Secagem Cliente João"
-                        required
-                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none"
-                      />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-2">
-                          Valor Base (lavagem/secagem)
+                          Quantidade de Lavagens
                         </label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={formData.valorBase}
-                          onChange={(e) => setFormData({ ...formData, valorBase: e.target.value })}
-                          placeholder="0.00"
-                          required
-                          className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none"
-                        />
-                        <div className="mt-2 space-y-2">
-                          <p className="text-xs text-slate-600">Lavagens rápidas:</p>
-                          <div className="flex gap-2">
-                            {QUANTIDADES_LAVAGEM.map((qtd) => (
-                              <button
-                                key={qtd}
-                                type="button"
-                                onClick={() => aplicarQuantidadeLavagens(qtd)}
-                                className="px-3 py-1 text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors"
-                              >
-                                {qtd} lavagem{qtd > 1 ? 'ens' : ''}
-                              </button>
-                            ))}
-                          </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => ajustarQuantidade('lavagem', -1)}
+                            className="px-3 py-2 border border-slate-300 rounded-lg hover:bg-slate-50"
+                          >
+                            -
+                          </button>
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={formData.qtdLavagens}
+                            onChange={(e) => setFormData({ ...formData, qtdLavagens: Math.max(0, Number(e.target.value) || 0) })}
+                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => ajustarQuantidade('lavagem', 1)}
+                            className="px-3 py-2 border border-slate-300 rounded-lg hover:bg-slate-50"
+                          >
+                            +
+                          </button>
                         </div>
                       </div>
 
-                      <div className="flex flex-col justify-end">
-                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                          <p className="text-sm text-slate-600 mb-1">Taxa de Serviço: + R$ {TAXA_SERVICO.toFixed(2)}</p>
-                          <p className="text-lg font-bold text-amber-700">
-                            Valor Total: R$ {valorTotal.toFixed(2)}
-                          </p>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                          Quantidade de Secagens
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => ajustarQuantidade('secagem', -1)}
+                            className="px-3 py-2 border border-slate-300 rounded-lg hover:bg-slate-50"
+                          >
+                            -
+                          </button>
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={formData.qtdSecagens}
+                            onChange={(e) => setFormData({ ...formData, qtdSecagens: Math.max(0, Number(e.target.value) || 0) })}
+                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => ajustarQuantidade('secagem', 1)}
+                            className="px-3 py-2 border border-slate-300 rounded-lg hover:bg-slate-50"
+                          >
+                            +
+                          </button>
                         </div>
                       </div>
+                    </div>
+
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                      <p className="text-sm text-slate-600 mb-1">
+                        Lavagens ({formData.qtdLavagens}x): R$ {(formData.qtdLavagens * PRECO_LAVAGEM_UNITARIO).toFixed(2)}
+                      </p>
+                      <p className="text-sm text-slate-600 mb-1">
+                        Secagens ({formData.qtdSecagens}x): R$ {(formData.qtdSecagens * PRECO_SECAGEM_UNITARIO).toFixed(2)}
+                      </p>
+                      <p className="text-sm text-slate-600 mb-1">Subtotal serviços: R$ {valorBase.toFixed(2)}</p>
+                      <p className="text-sm text-slate-600 mb-1">Taxa de Serviço: + R$ {TAXA_SERVICO.toFixed(2)}</p>
+                      <p className="text-lg font-bold text-amber-700">
+                        Valor Total: R$ {valorTotal.toFixed(2)}
+                      </p>
                     </div>
 
                     <div className="flex gap-3 pt-2">
@@ -369,9 +406,9 @@ export default function ServicoCompleto() {
                           setEditingReceita(null);
                           setFormData({
                             data: new Date().toISOString().split('T')[0],
-                            valorBase: '',
-                            descricao: '',
-                            categoria: 'lavagem'
+                            qtdLavagens: 0,
+                            qtdSecagens: 0,
+                            descricao: ''
                           });
                         }}
                         className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors"
