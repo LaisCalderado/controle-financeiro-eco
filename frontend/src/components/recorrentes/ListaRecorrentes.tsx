@@ -9,13 +9,14 @@ interface Props {
   onEdit: (id: number) => void;
   onDelete: (id: number) => void;
   onToggleAtiva: (id: number, ativa: boolean) => void;
+  onAdiantarPagamento: (id: number) => void;
 }
 
 interface RecorrentesAgrupadas {
   [categoria: string]: TransacaoRecorrente[];
 }
 
-const ListaRecorrentes: React.FC<Props> = ({ recorrentes, vencimentos, loading, onEdit, onDelete, onToggleAtiva }) => {
+const ListaRecorrentes: React.FC<Props> = ({ recorrentes, vencimentos, loading, onEdit, onDelete, onToggleAtiva, onAdiantarPagamento }) => {
   const [categoriaExpandida, setCategoriaExpandida] = useState<{ [key: string]: boolean }>({});
   const [filtroCategoria, setFiltroCategoria] = useState<string>('todas');
   const [ordenacao, setOrdenacao] = useState<'vencimento' | 'valor' | 'nome'>('vencimento');
@@ -192,6 +193,16 @@ const ListaRecorrentes: React.FC<Props> = ({ recorrentes, vencimentos, loading, 
                                 <span className="status-badge badge-mes-pago">✓ Pago este mês</span>
                               </>
                             )}
+                          </div>
+                          <div className="recorrente-extra-acoes">
+                            <button
+                              type="button"
+                              className="btn-adiantar-pagamento"
+                              onClick={() => onAdiantarPagamento(rec.id)}
+                              disabled={!rec.ativa || estaPaga}
+                            >
+                              {estaPaga ? 'Pagamento feito' : 'Adiantar pagamento'}
+                            </button>
                           </div>
                         </div>
                       <div className="recorrente-acoes">

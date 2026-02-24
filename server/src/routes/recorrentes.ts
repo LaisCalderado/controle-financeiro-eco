@@ -153,6 +153,93 @@ router.put('/:id', verifyToken, async (req: any, res) => {
     }
 });
 
+router.post('/:id/adiantar-pagamento', verifyToken, async (req: any, res) => {
+    const { id } = req.params;
+
+    try {
+        const checkPagoColumn = await pool.query(
+            `SELECT column_name 
+             FROM information_schema.columns 
+             WHERE table_name = 'transacoes' 
+             AND column_name = 'pago'`
+        );
+
+        const temColunaPago = checkPagoColumn.rows.length > 0;
+        if (!temColunaPago) {
+            return res.status(400).json({ error: 'Coluna pago não existe. Execute a migration add_pago_column.sql primeiro.' });
+        }
+
+        const recorrenteResult = await pool.query(
+            `SELECT * FROM transacoes_recorrentes 
+             WHERE id = $1 AND usuario_id = $2 AND ativa = true`,
+            [id, req.userId]
+        );
+
+        if (recorrenteResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Despesa fixa não encontrada ou inativa' });
+        }
+
+        const recorrente = recorrenteResult.rows[0];
+        if (recorrente.tipo !== 'despesa') {
+            return res.status(400).json({ error: 'Adiantar pagamento disponível apenas para despesas fixas' });
+        }
+
+        const hoje = new Date();
+        const mesAtual = hoje.getMonth();
+        const anoAtual = hoje.getFullYear();
+        const ultimoDiaMes = new Date(anoAtual, mesAtual + 1, 0).getDate();
+        const diaTransacao = Math.min(recorrente.dia_vencimento, ultimoDiaMes);
+        const dataFormatada = `${anoAtual}-${String(mesAtual + 1).padStart(2, '0')}-${String(diaTransacao).padStart(2, '0')}`;
+
+        const transacaoExistente = await pool.query(
+            `SELECT id, pago FROM transacoes
+             WHERE usuario_id = $1
+               AND tipo = 'despesa'
+               AND descricao = $2
+               AND TO_CHAR(data, 'YYYY-MM') = $3
+             LIMIT 1`,
+            [req.userId, recorrente.descricao, `${anoAtual}-${String(mesAtual + 1).padStart(2, '0')}`]
+        );
+
+        if (transacaoExistente.rows.length > 0) {
+            const atualizada = await pool.query(
+                `UPDATE transacoes
+                 SET pago = true
+                 WHERE id = $1 AND usuario_id = $2
+                 RETURNING *`,
+                [transacaoExistente.rows[0].id, req.userId]
+            );
+
+            return res.json({
+                message: 'Pagamento adiantado com sucesso',
+                transacao: atualizada.rows[0]
+            });
+        }
+
+        const criada = await pool.query(
+            `INSERT INTO transacoes (usuario_id, descricao, valor, tipo, categoria, data, pago)
+             VALUES ($1, $2, $3, $4, $5, $6, true)
+             RETURNING *`,
+            [
+                req.userId,
+                recorrente.descricao,
+                recorrente.valor,
+                'despesa',
+                recorrente.categoria,
+                dataFormatada
+            ]
+        );
+
+        return res.status(201).json({
+            message: 'Pagamento adiantado com sucesso',
+            transacao: criada.rows[0]
+        });
+    } catch (error) {
+        console.error('Erro ao adiantar pagamento:', error);
+        return res.status(500).json({ error: 'Erro ao adiantar pagamento' });
+    }
+});
+
 // Deletar transação recorrente
 router.delete('/:id', verifyToken, async (req: any, res) => {
     const { id } = req.params;

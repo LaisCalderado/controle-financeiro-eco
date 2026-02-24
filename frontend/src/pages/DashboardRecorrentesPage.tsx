@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, RefreshCw, Plus, CalendarClock, Repeat, CircleDollarSign } from 'lucide-react';
+import { Menu, RefreshCw, Plus, Repeat } from 'lucide-react';
+import { api } from '../services/api';
 import recorrentesService, { 
   TransacaoRecorrente, 
   Vencimento, 
@@ -12,6 +13,7 @@ import Sidebar from '../components/layout/Sidebar';
 import CardsResumo from '../components/recorrentes/CardsResumo';
 import ProximosVencimentos from '../components/recorrentes/ProximosVencimentos';
 import ListaRecorrentes from '../components/recorrentes/ListaRecorrentes';
+import ListaParceladas, { TransacaoParcelada } from '../components/recorrentes/ListaParceladas';
 import InsightsPanel from '../components/recorrentes/InsightsPanel';
 import GraficoDistribuicao from '../components/recorrentes/GraficoDistribuicao';
 import '../styles/dashboard-recorrentes.css';
@@ -19,17 +21,30 @@ import '../styles/dashboard-recorrentes.css';
 const DashboardRecorrentesPage: React.FC = () => {
   const navigate = useNavigate();
   const [recorrentes, setRecorrentes] = useState<TransacaoRecorrente[]>([]);
+  const [parceladas, setParceladas] = useState<TransacaoParcelada[]>([]);
   const [vencimentos, setVencimentos] = useState<Vencimento[]>([]);
   const [stats, setStats] = useState<Estatisticas | null>(null);
   const [insights, setInsights] = useState<Insight[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [deleteModal, setDeleteModal] = useState<{ show: boolean; id: number | null; descricao: string }>({ show: false, id: null, descricao: '' });
+  const [deleteModal, setDeleteModal] = useState<{ show: boolean; id: number | null; descricao: string; tipo: 'recorrente' | 'parcelada' }>({ show: false, id: null, descricao: '', tipo: 'recorrente' });
   const [gerarMesModal, setGerarMesModal] = useState(false);
+  const [adiantarPagamentoModal, setAdiantarPagamentoModal] = useState<{ show: boolean; id: number | null; descricao: string }>({ show: false, id: null, descricao: '' });
 
   useEffect(() => {
     carregarDados();
+
+    // Recarregar dados quando a página ganha foco (usuário volta de outra aba)
+    const handleFocus = () => {
+      carregarDados();
+    };
+
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   const carregarDados = async () => {
@@ -37,19 +52,26 @@ const DashboardRecorrentesPage: React.FC = () => {
       setLoading(true);
       setError(null);
 
+      const token = localStorage.getItem('token');
+      
       const [
         recorrentesData,
+        parceladasResponse,
         vencimentosData,
         statsData,
         insightsData
       ] = await Promise.all([
         recorrentesService.listar(),
+        api.get('/api/parceladas', {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
         recorrentesService.vencimentos(7),
         recorrentesService.estatisticas(),
         recorrentesService.insights()
       ]);
 
       setRecorrentes(recorrentesData);
+      setParceladas(parceladasResponse.data);
       setVencimentos(vencimentosData);
       setStats(statsData);
       setInsights(insightsData);
@@ -90,7 +112,36 @@ const DashboardRecorrentesPage: React.FC = () => {
   const handleDelete = (id: number) => {
     const recorrente = recorrentes.find(r => r.id === id);
     if (recorrente) {
-      setDeleteModal({ show: true, id, descricao: recorrente.descricao });
+      setDeleteModal({ show: true, id, descricao: recorrente.descricao, tipo: 'recorrente' });
+    }
+  };
+
+  const handleDeleteParcelada = (id: number) => {
+    const parcelada = parceladas.find(p => p.id === id);
+    if (parcelada) {
+      setDeleteModal({ show: true, id, descricao: parcelada.descricao, tipo: 'parcelada' });
+    }
+  };
+
+  const handleEditParcelada = (id: number) => {
+    const parcelada = parceladas.find(p => p.id === id);
+    if (parcelada) {
+      // Redirecionar para /despesas com os dados da despesa parcelada
+      navigate('/despesas', { 
+        state: { 
+          editParcelada: {
+            id: parcelada.id,
+            descricao: parcelada.descricao,
+            valor_total: parcelada.valor_total,
+            valor_parcela: parcelada.valor_parcela,
+            categoria: parcelada.categoria,
+            total_parcelas: parcelada.total_parcelas,
+            parcelas_pagas: parcelada.parcelas_pagas,
+            data_primeira_parcela: parcelada.data_primeira_parcela,
+            tipo: parcelada.tipo
+          }
+        } 
+      });
     }
   };
 
@@ -98,8 +149,17 @@ const DashboardRecorrentesPage: React.FC = () => {
     if (!deleteModal.id) return;
 
     try {
-      await recorrentesService.deletar(deleteModal.id);
-      setDeleteModal({ show: false, id: null, descricao: '' });
+      const token = localStorage.getItem('token');
+      
+      if (deleteModal.tipo === 'recorrente') {
+        await recorrentesService.deletar(deleteModal.id);
+      } else {
+        await api.delete(`/api/parceladas/${deleteModal.id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }
+      
+      setDeleteModal({ show: false, id: null, descricao: '', tipo: 'recorrente' });
       await carregarDados();
     } catch (err: any) {
       alert(err.response?.data?.error || 'Erro ao excluir');
@@ -107,7 +167,7 @@ const DashboardRecorrentesPage: React.FC = () => {
   };
 
   const cancelDelete = () => {
-    setDeleteModal({ show: false, id: null, descricao: '' });
+    setDeleteModal({ show: false, id: null, descricao: '', tipo: 'recorrente' });
   };
 
   const handleToggleAtiva = async (id: number, ativa: boolean) => {
@@ -145,6 +205,34 @@ const DashboardRecorrentesPage: React.FC = () => {
     } catch (err: any) {
       alert(err.response?.data?.error || 'Erro ao marcar como pago');
     }
+  };
+
+  const handleAdiantarPagamento = (recorrenteId: number) => {
+    const recorrente = recorrentes.find(r => r.id === recorrenteId);
+    if (!recorrente) return;
+
+    setAdiantarPagamentoModal({
+      show: true,
+      id: recorrenteId,
+      descricao: recorrente.descricao
+    });
+  };
+
+  const confirmAdiantarPagamento = async () => {
+    if (!adiantarPagamentoModal.id) return;
+
+    try {
+      const result = await recorrentesService.adiantarPagamento(adiantarPagamentoModal.id);
+      alert(result.message || 'Pagamento adiantado com sucesso');
+      setAdiantarPagamentoModal({ show: false, id: null, descricao: '' });
+      await carregarDados();
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Erro ao adiantar pagamento');
+    }
+  };
+
+  const cancelAdiantarPagamento = () => {
+    setAdiantarPagamentoModal({ show: false, id: null, descricao: '' });
   };
 
   if (error) {
@@ -258,6 +346,15 @@ const DashboardRecorrentesPage: React.FC = () => {
                 onEdit={handleEdit}
                 onDelete={handleDelete}
                 onToggleAtiva={handleToggleAtiva}
+                onAdiantarPagamento={handleAdiantarPagamento}
+              />
+
+              {/* Lista de Parceladas */}
+              <ListaParceladas
+                parceladas={parceladas}
+                loading={loading}
+                onEdit={handleEditParcelada}
+                onDelete={handleDeleteParcelada}
               />
             </div>
 
@@ -301,7 +398,7 @@ const DashboardRecorrentesPage: React.FC = () => {
                     Confirmar Exclusão
                   </h3>
                   <p className="text-sm text-gray-500 mb-4">
-                    Tem certeza que deseja excluir a despesa fixa <strong>"{deleteModal.descricao}"</strong>? Esta ação não pode ser desfeita.
+                    Tem certeza que deseja excluir {deleteModal.tipo === 'recorrente' ? 'a despesa fixa' : 'a despesa parcelada'} <strong>"{deleteModal.descricao}"</strong>? Esta ação não pode ser desfeita.
                   </p>
                   <div className="flex gap-3 justify-center">
                     <button
@@ -366,6 +463,57 @@ const DashboardRecorrentesPage: React.FC = () => {
                       className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
                     >
                       Gerar
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Modal de Confirmação para Adiantar Pagamento */}
+      <AnimatePresence>
+        {adiantarPagamentoModal.show && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={cancelAdiantarPagamento}
+              className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6"
+              >
+                <div className="text-center">
+                  <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                    <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.5-3.5A9 9 0 1112 3a9 9 0 019.5 3.5z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    Confirmar Adiantamento
+                  </h3>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Deseja confirmar o adiantamento do pagamento da despesa fixa <strong>"{adiantarPagamentoModal.descricao}"</strong>?
+                  </p>
+                  <div className="flex gap-3 justify-center">
+                    <button
+                      onClick={cancelAdiantarPagamento}
+                      className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={confirmAdiantarPagamento}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                    >
+                      Confirmar
                     </button>
                   </div>
                 </div>

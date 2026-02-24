@@ -112,6 +112,11 @@ const recorrentesService = {
   marcarComoPago: async (transacaoId: number, pago: boolean): Promise<any> => {
     const response = await api.put(`/api/transactions/${transacaoId}/marcar-pago`, { pago });
     return response.data;
+  },
+
+  adiantarPagamento: async (recorrenteId: number): Promise<any> => {
+    const response = await api.post(`/api/recorrentes/${recorrenteId}/adiantar-pagamento`);
+    return response.data;
   }
 };
 

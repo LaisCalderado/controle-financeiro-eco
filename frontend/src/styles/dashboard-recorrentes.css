@@ -253,6 +253,31 @@
   border-left-color: #3498db;
 }
 
+.recorrente-extra-acoes {
+  margin-top: 0.5rem;
+}
+
+.btn-adiantar-pagamento {
+  border: 1px solid #3b82f6;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 0.35rem 0.7rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-adiantar-pagamento:hover:not(:disabled) {
+  background: #dbeafe;
+}
+
+.btn-adiantar-pagamento:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .vencimento-info {
   display: flex;
   justify-content: space-between;
