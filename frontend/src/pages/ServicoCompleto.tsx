@@ -41,6 +41,8 @@ export default function ServicoCompleto() {
   });
 
   const TAXA_SERVICO = 15.00;
+  const PRECO_LAVAGEM_UNITARIO = 16.99;
+  const QUANTIDADES_LAVAGEM = [1, 5, 6];
 
   useEffect(() => {
     fetchReceitas();
@@ -80,6 +82,11 @@ export default function ServicoCompleto() {
     const base = Number(formData.valorBase) || 0;
     return base + TAXA_SERVICO;
   }, [formData.valorBase]);
+
+  const aplicarQuantidadeLavagens = (quantidade: number) => {
+    const valorCalculado = (quantidade * PRECO_LAVAGEM_UNITARIO).toFixed(2);
+    setFormData((prev) => ({ ...prev, valorBase: valorCalculado }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -327,6 +334,21 @@ export default function ServicoCompleto() {
                           required
                           className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none"
                         />
+                        <div className="mt-2 space-y-2">
+                          <p className="text-xs text-slate-600">Lavagens rápidas:</p>
+                          <div className="flex gap-2">
+                            {QUANTIDADES_LAVAGEM.map((qtd) => (
+                              <button
+                                key={qtd}
+                                type="button"
+                                onClick={() => aplicarQuantidadeLavagens(qtd)}
+                                className="px-3 py-1 text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors"
+                              >
+                                {qtd} lavagem{qtd > 1 ? 'ens' : ''}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                       </div>
 
                       <div className="flex flex-col justify-end">

@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { CalendarIcon, Save, X, Repeat, CreditCard } from 'lucide-react';
 import { motion } from 'framer-motion';
+
+const PRECO_LAVAGEM_UNITARIO = 16.99;
+const QUANTIDADES_LAVAGEM = [1, 5, 6];
 
 const categoriasReceita = [
   { value: 'lavagem', label: 'Lavagem' },
   { value: 'secagem', label: 'Secagem' },
   { value: 'passadoria', label: 'Passadoria' },
+  { value: 'diarias', label: 'Diárias' },
   { value: 'outros', label: 'Outros' }
 ];
 
@@ -18,6 +21,7 @@ const categoriasDespesa = [
   { value: 'aluguel', label: 'Aluguel' },
   { value: 'funcionarios', label: 'Funcionários' },
   { value: 'manutencao', label: 'Manutenção' },
+    { value: 'diarias', label: 'Diárias' },
   { value: 'outros', label: 'Outros' }
 ];
 
@@ -30,20 +34,30 @@ interface TransacaoFormProps {
   onSubmitRecorrente?: (data: any) => void;
   onSubmitParcelada?: (data: any) => void;
   initialTipoTransacao?: 'normal' | 'recorrente' | 'parcelada';
+  parceladaData?: any;
 }
 
-export default function TransacaoForm({ tipo, transacao, onSubmit, onCancel, isLoading, onSubmitRecorrente, onSubmitParcelada, initialTipoTransacao = 'normal' }: TransacaoFormProps) {
+export default function TransacaoForm({ tipo, transacao, onSubmit, onCancel, isLoading, onSubmitRecorrente, onSubmitParcelada, initialTipoTransacao = 'normal', parceladaData }: TransacaoFormProps) {
   const [tipoTransacao, setTipoTransacao] = useState<'normal' | 'recorrente' | 'parcelada'>(initialTipoTransacao);
   const [formData, setFormData] = useState({
-    data: transacao?.data ? transacao.data.split('T')[0] : format(new Date(), 'yyyy-MM-dd'),
-    valor: transacao?.valor || '',
-    descricao: transacao?.descricao || '',
-    categoria: transacao?.categoria || '',
+    data: parceladaData?.data_primeira_parcela ? parceladaData.data_primeira_parcela.split('T')[0] : (transacao?.data ? transacao.data.split('T')[0] : format(new Date(), 'yyyy-MM-dd')),
+    valor: parceladaData?.valor_total || transacao?.valor || '',
+    descricao: parceladaData?.descricao || transacao?.descricao || '',
+    categoria: parceladaData?.categoria || transacao?.categoria || '',
     dia_vencimento: 1,
-    total_parcelas: 2
+    total_parcelas: parceladaData?.total_parcelas || 2
   });
 
   const categorias = tipo === 'receita' ? categoriasReceita : categoriasDespesa;
+  const mostrarBotoesLavagem =
+    tipo === 'receita' &&
+    tipoTransacao === 'normal' &&
+    (formData.categoria === 'lavagem' || formData.categoria === 'secagem');
+
+  const aplicarQuantidadeLavagens = (quantidade: number) => {
+    const valorCalculado = (quantidade * PRECO_LAVAGEM_UNITARIO).toFixed(2);
+    setFormData({ ...formData, valor: valorCalculado });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,7 +118,7 @@ export default function TransacaoForm({ tipo, transacao, onSubmit, onCancel, isL
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
-            Normal
+            Diária
           </button>
           {onSubmitRecorrente && (
             <button
@@ -193,6 +207,24 @@ export default function TransacaoForm({ tipo, transacao, onSubmit, onCancel, isL
             <p className="text-xs text-slate-500">
               {formData.total_parcelas}x de R$ {(parseFloat(formData.valor) / formData.total_parcelas).toFixed(2)}
             </p>
+          )}
+
+          {mostrarBotoesLavagem && (
+            <div className="mt-2 space-y-2">
+              <p className="text-xs text-slate-600">Lavagens rápidas:</p>
+              <div className="flex gap-2">
+                {QUANTIDADES_LAVAGEM.map((qtd) => (
+                  <button
+                    key={qtd}
+                    type="button"
+                    onClick={() => aplicarQuantidadeLavagens(qtd)}
+                    className="px-3 py-1 text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+                  >
+                    {qtd} lavagem{qtd > 1 ? 'ens' : ''}
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       </div>
